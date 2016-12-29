@@ -51,6 +51,7 @@
             CurLine = AllLines.Count - 1
             CurPos = Len(AllLines(CurLine))
             ReturnToCaret()
+            ResizeScrollbars()
             Me.Invalidate()
         End Set
     End Property
@@ -1094,7 +1095,7 @@ startFromTop:
 
                     'Line data
                     If IsInsideMultiComment(I) Then
-                        RenderBuffer(I) += "{c#FF00FF00}{i}" + Replace(AllLines(RenderStart + I), vbTab, "    ") + "{/c#}"
+                        RenderBuffer(I) += "{c#FF00FF00}{i}" + SafeChars(Replace(AllLines(RenderStart + I), vbTab, "    ")) + "{/c#}"
                     Else
                         RenderBuffer(I) += FormatSyntax(Replace(AllLines(RenderStart + I), vbTab, "    "))
                     End If
@@ -1102,7 +1103,7 @@ startFromTop:
                     'Margin
                     RenderBuffer(I) = "   " + Strings.Right("          " + (RenderStart + I + 1).ToString, Len((AllLines.Count).ToString)) + " "
                     'Line Data
-                    RenderBuffer(I) += Replace(AllLines(RenderStart + I), vbTab, "    ")
+                    RenderBuffer(I) += SafeChars(Replace(AllLines(RenderStart + I), vbTab, "    "))
                 End If
             End If
         Next
@@ -1265,6 +1266,7 @@ startFromTop:
                             i2 += 1
                         End If
                     End If
+
                 Loop Until i2 > Len(RenderBuffer(i))
                 If renderStr <> "" Then
                     SVBrush.Dispose()
@@ -1415,8 +1417,8 @@ startFromTop:
                 XSel = -1
                 I = 0
                 Do
-                    SzF = GFX.MeasureString(Strings.Left(AllLines(YSel), I), SVFont)
-                    SzF2 = GFX.MeasureString(Strings.Left(AllLines(YSel), I + 1), SVFont)
+                    SzF = GFX.MeasureString(Replace(Strings.Left(AllLines(YSel), I), vbTab, "    "), SVFont)
+                    SzF2 = GFX.MeasureString(Replace(Strings.Left(AllLines(YSel), I + 1), vbTab, "    "), SVFont)
 
                     If (SzF.Width + MarginWidth) < e.X Then
                         If SzF2.Width + MarginWidth >= e.X Then

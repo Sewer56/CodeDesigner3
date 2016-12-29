@@ -16,3 +16,4 @@ C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\o
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Release\CodeDesigner3.exe
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Release\CodeDesigner3.xml
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Release\CodeDesigner3.pdb
+C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Release\CodeDesigner3.vbprojResolveAssemblyReference.cache

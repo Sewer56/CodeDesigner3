@@ -2165,7 +2165,7 @@ restartGathering:
         Dim lastLen As Integer, ret As String
         ret = strIn
         Do
-            lastLen = ret.Length
+            lastLen = Len(ret)
             ret = Replace(ret, "  ", " ")
             If Left(ret, 1).Equals(" ") Then ret = Right(ret, ret.Length - 1)
             If Right(ret, 1).Equals(" ") Then ret = Left(ret, ret.Length - 1)
