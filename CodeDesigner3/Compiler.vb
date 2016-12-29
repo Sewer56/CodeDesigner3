@@ -1308,6 +1308,7 @@ process_While_Loop:
                         Dim hasElse As Integer, ifRt As Integer, ifElseIf() As Integer, ifElseIfEnd() As Integer
                         Dim ifElseMainEndBrace As Integer
 
+
                         hasElse = -1
                         ifsCount += 1
                         ifRt = -1
