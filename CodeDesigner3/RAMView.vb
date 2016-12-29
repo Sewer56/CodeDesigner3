@@ -897,4 +897,23 @@
             ReturnToCursor()
         End If
     End Sub
+
+    Private Sub RAMView_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
+        Select Case e.KeyCode
+            Case Keys.PageUp
+                If CurLine - RenderLines > 0 Then
+                    CurLine -= RenderLines
+                Else
+                    CurLine = 0
+                End If
+                ReturnToCursor()
+            Case Keys.PageDown
+                If CurLine + RenderLines < ((4294967295 \ 4) - RenderLines) Then
+                    CurLine += RenderLines
+                Else
+                    CurLine = 4294967295 \ 4
+                End If
+                ReturnToCursor()
+        End Select
+    End Sub
 End Class
