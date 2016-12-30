@@ -103,7 +103,7 @@
             Case 28
                 Return "dhwoin"
             Case Else
-                Return "$" + VarIndex.ToString
+                Return VarIndex.ToString
         End Select
     End Function
 
@@ -222,10 +222,6 @@
             Case 31
                 Return "31"
         End Select
-    End Function
-
-    Public Function GetCOP1RegStr(RegIndex As Byte) As String
-        Return "$f" + RegIndex.ToString
     End Function
 
     Public Function GetEERegStr(RegIndex As Byte) As String
@@ -370,15 +366,23 @@
         End Select
     End Function
 
+    Public Function GetCOP1RegStr(RegIndex As Byte) As String
+        Return "f" + RegIndex.ToString
+    End Function
+
     Public Function GetCOP1RegVal(strReg As String) As SByte
         Dim tReg As String
 
         tReg = LCase(strReg)
         tReg = Replace(tReg, "$", "")
-        tReg = Replace(tReg, "f", "")
-        If CDec(tReg) > 31 Then Return -1
+        If LCase(Strings.Left(tReg, 1)) = "f" Then
+            tReg = Strings.Right(tReg, Len(tReg) - 1)
+            If tReg = "" Then Return -1
+            If Val(tReg) > 31 Then Return -1
+            Return Val(tReg)
+        End If
 
-        Return CDec(tReg)
+        Return -1
     End Function
 
     Public Function GetEERegVal(strReg As String) As SByte

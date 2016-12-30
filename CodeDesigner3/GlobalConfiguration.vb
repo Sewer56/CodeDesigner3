@@ -3,16 +3,27 @@
 
     Public Sub SVUseDefault(ByRef SV As SyntaxView, ByRef mpAsm As MIPSAssembly)
         SV.SetSyntaxCmdConfig("hexcode", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("code", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("setreg", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("setfpr", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("setfloat", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("address", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("alloc", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("string", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("print", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("padding", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("call", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("goto", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("define", Val("&HFFff00ff"), "{b}")
+
+        SV.SetSyntaxCmdConfig("prochook", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("hook", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("thread", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("thread.start", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("thread.stop", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("thread.sleep", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("thread.wakeup", Val("&HFFff00ff"), "{b}")
+        SV.SetSyntaxCmdConfig("event", Val("&HFFff00ff"), "{b}")
 
         SV.SetSyntaxCmdConfig("import", Val("&HFFff00ff"), "{b}")
 

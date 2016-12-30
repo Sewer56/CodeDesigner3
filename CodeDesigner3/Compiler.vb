@@ -6,6 +6,7 @@
     Private FuncsAndSubs() As AsmFunction, FnScount As Integer
     Private BraceScopes() As BraceScope, ScopeCount As Integer
     Private Footer() As FooterCode, FooterCount As Integer
+    Dim FThreads() As FuncThread, ThreadCount As Integer
 
     Private CodeFormat As String
     Private ifsCount As Integer, switchesCount As Integer
@@ -48,7 +49,10 @@
 
 
 
-
+    Private Structure FuncThread
+        Dim ThreadName As String
+        Dim ThreadID As Integer
+    End Structure
     Private Structure FooterCode
         Dim DeclarationLine As Integer
         Dim Code As String
@@ -160,6 +164,7 @@
         FooterCount = -1
         FnScount = -1
         LBCount = -1
+        ThreadCount = -1
         CodeFormat = "2"
 
     End Sub
@@ -220,6 +225,28 @@ E:
         LBCount = -1
     End Sub
 
+    Private Sub AddThread(TName As String)
+        ThreadCount += 1
+        ReDim Preserve FThreads(ThreadCount)
+        With FThreads(ThreadCount)
+            .ThreadName = TName
+            .ThreadID = ThreadCount
+        End With
+    End Sub
+    Private Function GetThreadID(TName As String) As Integer
+        Dim i As Integer
+        For i = 0 To ThreadCount
+            With FThreads(i)
+                If .ThreadName = TName Then Return .ThreadID
+            End With
+        Next
+
+        Return -1
+    End Function
+    Private Sub ClearThreads()
+        ThreadCount = -1
+        ReDim FThreads(0)
+    End Sub
 
     Private Sub ClearFuncs()
         ReDim FuncsAndSubs(0)
@@ -359,16 +386,20 @@ updateFunc:
 
     Public Function CompileProject(PrjName() As String, PrjData() As String, ByRef cOut As String) As Integer
         Dim MemAddr As Int32, i As Integer, Output() As String, CodeOutput() As String, rt As Integer
-        Dim FootData As String, FootOutput As String, FootCode() As String
+        Dim FootData As String, FootOutput As String, FootCode() As String, ImportsAndExtra As String
 
         MemAddr = 0
 
         ClearFooter()
         ClearLabels()
         ClearFuncs()
+        ClearThreads()
         ReDim Output(PrjName.Count - 1)
 
+        ImportsAndExtra = ProjectImportScan(PrjData)
+
         For i = 0 To PrjName.Count - 1
+            If i = PrjName.Count - 1 Then PrjData(i) += vbCrLf + ImportsAndExtra + vbCrLf
             rt = CompileSingle(PrjData(i), Output(i), True, MemAddr, "", True)
             If rt < 0 Then
                 ErrDetail.PageName = PrjName(i)
@@ -428,7 +459,13 @@ updateFunc:
         Dim CurrentFunc As Integer, fncScan As Boolean, myScope As Integer
         Dim PageData As String
 
-        PageData = Src + SingleImportLibrary(Src)
+        If isProj = False Then
+            ClearThreads()
+            PageData = Src + SingleImportLibrary(Src)
+        Else
+            PageData = Src
+        End If
+
         fncScan = True
 fncScanCompleteRestart:
 
@@ -472,8 +509,167 @@ compileFooter:
             End If
 
             Select Case LCase(sp(0))
+                Case "alloc"
+                    If sp(1) = "" Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Must have a name for the allocated space")
+                    If sp(2) = "" Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Memory allocation requires a size")
+
+                    AddFooter("", I, "padding " + sp(2), sp(1))
+                Case "thread"
+                Case "prochook"
+                Case "hook"
+                    'hook %me $00100000 -j
+                    'hook labelname $00100000 -jal
+                    'hook labelname $00100000 -pointer
+
+                    If LCase(Strings.Right("00000000" + Hex(Val(Replace(sp(1), "$", "&h0"))), 8)) = LCase(Strings.Right("00000000" + Replace(sp(1), "$", ""), 8)) Then
+                        i2 = Val(Replace(sp(1), "$", "&h0"))
+                        LabeledToCodeArray(CodeOutput, i2, "hook " + sp(1) + " " + sp(2) + " " + sp(3) + " " + I.ToString, 0)
+                    ElseIf LCase(sp(1)) = "%me" Then
+                        tStr = CodeFormat + Strings.Right("00000000" + Hex(Val(Replace(sp(2), "$", "&h0"))), 7)
+                        If LCase(sp(2)) = "-j" Then
+                            rt = mpAsm.AssembleInstruction("j " + MemAddr.ToString, CodeRet)
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        ElseIf LCase(sp(2)) = "-jal" Then
+                            rt = mpAsm.AssembleInstruction("jal " + MemAddr.ToString, CodeRet)
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        ElseIf LCase(sp(2)) = "-pointer" Then
+                            tStr2 = Strings.Right("00000000" + Hex(MemAddr), 8)
+                        Else
+                            rt = mpAsm.AssembleInstruction("j " + MemAddr.ToString, CodeRet)
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        End If
+                        AppendToCodeArray(CodeOutput, tStr, tStr2)
+                    Else
+                        LabeledToCodeArray(CodeOutput, MemAddr, "hook " + sp(1) + " " + sp(2) + " " + sp(3) + " " + I.ToString, 0)
+                    End If
+
+                Case "code"
+                    If Len(sp(1)) <> 8 Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    If Len(sp(2)) <> 8 Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    If LCase(Hex(Val("&H" + sp(1)))) <> LCase(sp(1)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    If LCase(Hex(Val("&H" + sp(2)))) <> LCase(sp(2)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    AppendToCodeArray(CodeOutput, sp(1), sp(2))
                 Case "include"
                 Case "import"
+                Case "event"
+                Case "thread.sleep"
+                    'thread.sleep(me, 1000)
+                    i2 = -1
+                    If LCase(sp(1)) = "me" Then
+                        If CurrentFunc < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Not inside a thread")
+                        i2 = GetThreadID(FuncsAndSubs(CurrentFunc).FncName)
+                    Else
+                        i2 = GetThreadID(sp(1))
+                    End If
+                    If i2 < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Thread '" + sp(1) + "' could not be found")
+
+                    tStr = "addiu sp, sp, $ffe0" + vbCrLf +
+                            "sq t8, $0000(sp)" + vbCrLf +
+                            "sq t9, $0010(sp)" + vbCrLf
+
+                    tStr += GenerateSetRegCode(Val(Replace(sp(2), "$", "&h0")), "t8") + vbCrLf
+                    tStr += "ori at, zero, " + i2.ToString + vbCrLf
+                    tStr += "sll at, at, 4"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                    tStr = "setreg t9, :_Main_Process_Thread_Table  " + I.ToString
+                    LabeledToCodeArray(CodeOutput, MemAddr, tStr, 8)
+
+                    tStr = "addu t9, at, t9" + vbCrLf
+                    tStr += "sw t8, $0004(t9)" + vbCrLf
+                    tStr += "sw zero, $0008(t9)" + vbCrLf
+
+                    tStr += "lq t8, $0000(sp)" + vbCrLf +
+                            "lq t9, $0010(sp)" + vbCrLf +
+                            "addiu sp, sp, $0020"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                Case "thread.wakeup"
+                    i2 = -1
+                    If LCase(sp(1)) = "me" Then
+                        If CurrentFunc < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Not inside a thread")
+                        i2 = GetThreadID(FuncsAndSubs(CurrentFunc).FncName)
+                    Else
+                        i2 = GetThreadID(sp(1))
+                    End If
+                    If i2 < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Thread '" + sp(1) + "' could not be found")
+
+                    tStr = "addiu sp, sp, $fff0" + vbCrLf +
+                            "sq t9, $0000(sp)" + vbCrLf
+
+                    'tStr += GenerateSetRegCode(Val(Replace(sp(2), "$", "&h0")), "t8") + vbCrLf
+                    tStr += "ori at, zero, " + i2.ToString + vbCrLf
+                    tStr += "sll at, at, 4"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                    tStr = "setreg t9, :_Main_Process_Thread_Table  " + I.ToString
+                    LabeledToCodeArray(CodeOutput, MemAddr, tStr, 8)
+
+                    tStr = "addu t9, at, t9" + vbCrLf
+                    tStr += "sw zero, $0004(t9)" + vbCrLf
+                    tStr += "sw zero, $0008(t9)" + vbCrLf
+
+                    tStr += "lq t9, $0000(sp)" + vbCrLf +
+                            "addiu sp, sp, $0010"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                Case "thread.stop"
+                    i2 = -1
+                    If LCase(sp(1)) = "me" Then
+                        If CurrentFunc < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Not inside a thread")
+                        i2 = GetThreadID(FuncsAndSubs(CurrentFunc).FncName)
+                    Else
+                        i2 = GetThreadID(sp(1))
+                    End If
+                    If i2 < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Thread '" + sp(1) + "' could not be found")
+
+                    tStr = "addiu sp, sp, $fff0" + vbCrLf +
+                            "sq t9, $0000(sp)" + vbCrLf
+
+                    'tStr += GenerateSetRegCode(Val(Replace(sp(2), "$", "&h0")), "t8") + vbCrLf
+                    tStr += "ori at, zero, " + i2.ToString + vbCrLf
+                    tStr += "sll at, at, 4"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                    tStr = "setreg t9, :_Main_Process_Thread_Table  " + I.ToString
+                    LabeledToCodeArray(CodeOutput, MemAddr, tStr, 8)
+
+                    tStr = "addu t9, at, t9" + vbCrLf
+                    tStr += "sw zero, $000c(t9)" + vbCrLf
+
+                    tStr += "lq t9, $0000(sp)" + vbCrLf +
+                            "addiu sp, sp, $0010"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                Case "thread.start"
+                    i2 = -1
+                    If LCase(sp(1)) = "me" Then
+                        If CurrentFunc < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Not inside a thread")
+                        i2 = GetThreadID(FuncsAndSubs(CurrentFunc).FncName)
+                    Else
+                        i2 = GetThreadID(sp(1))
+                    End If
+                    If i2 < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Thread '" + sp(1) + "' could not be found")
+
+                    tStr = "addiu sp, sp, $fff0" + vbCrLf +
+                            "sq t9, $0000(sp)" + vbCrLf
+
+                    'tStr += GenerateSetRegCode(Val(Replace(sp(2), "$", "&h0")), "t8") + vbCrLf
+                    tStr += "ori at, zero, " + i2.ToString + vbCrLf
+                    tStr += "sll at, at, 4"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
+                    tStr = "setreg t9, :_Main_Process_Thread_Table  " + I.ToString
+                    LabeledToCodeArray(CodeOutput, MemAddr, tStr, 8)
+
+                    tStr = "addu t9, at, t9" + vbCrLf
+                    tStr += "addiu at, zero, 1" + vbCrLf
+                    tStr += "sw at, $000c(t9)" + vbCrLf
+
+                    tStr += "lq t9, $0000(sp)" + vbCrLf +
+                            "addiu sp, sp, $0010"
+                    AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+
                 Case "address"
                     MemAddr = Val(Replace(sp(1), "$", "&H0"))
                     GoTo skipBlank
@@ -601,7 +797,7 @@ compileFooter:
                     End If
                 Case "setfpr"
                     If Strings.Left(sp(2), 1) = ":" Then
-                        LabeledToCodeArray(CodeOutput, MemAddr, "setreg at" + sp(2) + " " + sp(3) + " " + I.ToString, 8)
+                        LabeledToCodeArray(CodeOutput, MemAddr, "setreg at " + sp(2) + " " + sp(3) + " " + I.ToString, 8)
 
                         rt = mpAsm.AssembleInstruction("mtc1 at, " + sp(1), CodeRet)
                         If rt < 0 Then GoTo AssemblerErrorHandle
@@ -622,7 +818,7 @@ compileFooter:
                     End If
                 Case "setfloat"
                     If Strings.Left(sp(2), 1) = ":" Then
-                        LabeledToCodeArray(CodeOutput, MemAddr, "setreg at" + sp(2) + " " + sp(3) + " " + I.ToString, 8)
+                        LabeledToCodeArray(CodeOutput, MemAddr, "setreg at " + sp(2) + " " + sp(3) + " " + I.ToString, 8)
 
                         rt = mpAsm.AssembleInstruction("mtc1 at, " + sp(1), CodeRet)
                         If rt < 0 Then GoTo AssemblerErrorHandle
@@ -663,11 +859,12 @@ compileFooter:
                     End If
                 Case "call"
                     'call name(a0, a1, a2..)
-                    Dim fIndx As Integer, didCallJal As Boolean
+                    Dim fIndx As Integer, didCallJal As Boolean, doJalInject As Boolean
 
                     fIndx = FindFuncOrSub(sp(1))
                     If fIndx < 0 Then Return CreateError("", SyntaxError_LabelNotFound, I, Lines(I), "Function has not been declared")
 
+                    doJalInject = False
                     didCallJal = False
                     i2 = 2
                     i3 = 0
@@ -677,16 +874,37 @@ compileFooter:
                             If .ArgTypes(i3) <> "" And sp(i2) = "" Then Return CreateError("", SyntaxError_BadArgumentCount, I, Lines(I), "Wrong number of arguments for this function")
 
                             If .ArgTypes(i3) <> "" And sp(i2) <> "" Then
-                                If i3 = (.ArgTypes.Count - 3) And sp(i2 + 1) = "" Then
-                                    LabeledToCodeArray(CodeOutput, MemAddr, "jal :" + .FncName + "   " + I.ToString, 4)
-                                    didCallJal = True
-                                End If
+                                If i3 = (.ArgTypes.Count - 1) And sp(i2 + 1) = "" Then doJalInject = True
+                                'LabeledToCodeArray(CodeOutput, MemAddr, "jal :" + .FncName + "   " + I.ToString, 4)
+                                'didCallJal = True
+                                'End If
 
                                 If .ArgTypes(i3) = "EE" Then
-                                    If GetEERegVal(sp(i2)) < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Invalid input argument type")
-                                    rt = mpAsm.AssembleInstruction("daddu " + .ArgRegs(i3) + ", " + sp(i2) + ", zero", CodeRet)
-                                    If rt < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Unknown reason for being here")
-                                    FormatToCodeArray(CodeOutput, MemAddr, CodeRet)
+                                    If GetEERegVal(sp(i2)) < 0 Then
+                                        If GetCOP1RegVal(sp(i2)) >= 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Invalid input argument type")
+                                        If GetCOP0RegVal(sp(i2)) >= 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Invalid input argument type")
+                                        If Strings.Left(sp(i2), 1) = ":" Then
+                                            LabeledToCodeArray(CodeOutput, MemAddr, "setreg " + .ArgRegs(i3) + " " + sp(i2) + "  " + I.ToString, 8)
+                                        Else
+                                            tStr = GenerateSetRegCode(Val(Replace(sp(i2), "$", "&h0")), .ArgRegs(i3))
+                                            If doJalInject Then
+                                                sp2 = Split(tStr + vbCrLf, vbCrLf)
+                                                If sp2.Count > 2 Then
+                                                    tStr = sp2(0) + vbCrLf + "jal :" + .FncName + vbCrLf + sp2(1)
+                                                Else
+                                                    tStr = "jal :" + .FncName + vbCrLf + tStr
+                                                End If
+                                                didCallJal = True
+                                            End If
+                                            AddGeneratedToOutput(tStr, MemAddr, CodeOutput, I)
+                                        End If
+                                    Else
+                                        If LCase(sp(i2)) <> LCase(.ArgRegs(i3)) Then
+                                            rt = mpAsm.AssembleInstruction("daddu " + .ArgRegs(i3) + ", " + sp(i2) + ", zero", CodeRet)
+                                            If rt < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Unknown reason for being here")
+                                            FormatToCodeArray(CodeOutput, MemAddr, CodeRet)
+                                        End If
+                                    End If
                                 ElseIf .ArgTypes(i3) = "COP1" Then
                                     If GetCOP1RegVal(sp(i2)) < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Invalid input argument type")
                                     rt = mpAsm.AssembleInstruction("mov.s " + .ArgRegs(i3) + ", " + sp(i2), CodeRet)
@@ -739,6 +957,10 @@ fScanFunc:
                             fncTypes(fncRCount) = "EE"
                             If GetCOP1RegVal(sp(i2 + 1)) < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Register type is different from declaration")
                             fncRegs(fncRCount) = sp(i2 + 1)
+                        ElseIf LCase(sp(i2)) = "void" Then
+
+                        Else
+                            Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Register type was not defined; EX: fnc myFunc(EE a0, EE a1)")
                         End If
                         i2 += 2
                     Loop
@@ -1286,7 +1508,20 @@ process_While_Loop:
                             If rt < 0 Then Return CreateError("", SyntaxError_DuplicateLabel, I, Lines(I), "Unkown reason for being here")
                             FormatToCodeArray(CodeOutput, MemAddr, 0)
 
-                            rt = AddLabel(ifLeaveSequence, MemAddr + 4)
+                            Dim instIFSize As Integer, instIFPeek() As String
+                            instIFSize = 4
+                            instIFPeek = Split(parseSyntax(LCase(Lines(I + 1))) + "      ", " ")
+
+                            If instIFPeek(0) = "" Then Return CreateError("", SyntaxError_BadIFStatement, I, Lines(I), "IF Declared without any operation")
+                            If instIFPeek(0) = "return" Then instIFSize = 8
+                            If instIFPeek(0) = "break" Then instIFSize = 8
+                            If instIFPeek(0) = "goto" Then instIFSize = 8
+                            If instIFPeek(0) = "setreg" Then instIFSize = 8
+                            If instIFPeek(0) = "setfpr" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "IF Declared with invalid operation")
+                            If instIFPeek(0) = "setfloat" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "IF Declared with invalid operation")
+
+
+                            rt = AddLabel(ifLeaveSequence, MemAddr + instIFSize)
                             If rt < 0 Then Return CreateError("", SyntaxError_DuplicateLabel, I, Lines(I), "Unknown reason for being here")
 
                         Else
@@ -1695,6 +1930,17 @@ processSwitchStatement:
                         End If
                     End If
 
+
+                    If Len(sp(0)) = 8 And Len(sp(1)) = 8 And sp(2) = "" And sp(3) = "" Then
+                        tStr = LCase(Strings.Right("00000000" + Hex(Val("&H" + sp(0))), 8))
+                        tStr2 = LCase(Strings.Right("00000000" + Hex(Val("&H" + sp(1))), 8))
+
+                        If tStr = LCase(sp(0)) And tStr2 = LCase(sp(1)) Then
+                            AppendToCodeArray(CodeOutput, sp(0), sp(1))
+                            GoTo skipBlank
+                        End If
+                    End If
+
                     '------------------------------------------------ Instruction
                     rt = mpAsm.AssembleInstruction(Lines(I), CodeRet)
                     If rt < 0 Then
@@ -1769,6 +2015,10 @@ skipBlank:
         CodeArr(CodeArr.Count - 1) = FormatCode(MemAddr, CodeVal)
         ReDim Preserve CodeArr(CodeArr.Count)
         MemAddr += 4
+    End Sub
+    Private Sub AppendToCodeArray(ByRef CodeArr() As String, CodeAddr As String, CodeData As String)
+        CodeArr(CodeArr.Count - 1) = CodeAddr + " " + CodeData
+        ReDim Preserve CodeArr(CodeArr.Count)
     End Sub
     Private Function FormatCode(MemAddr As Int32, CodeVal As UInt32) As String
         Return CodeFormat +
@@ -1877,11 +2127,43 @@ skipBlank:
                "ori at, at, $" + Strings.Right(tstr, 4)
 
     End Function
+    Private Function GenerateSetRegCode(rVal As Integer, Reg As String) As String
+        If rVal = 0 Then Return "daddu " + Reg + ", zero, zero"
+        If rVal >= &HFFFF8000 And rVal <= &H7FFF Then Return "addiu " + Reg + ", zero, " + rVal.ToString
+        If rVal > 0 And rVal < &H10000 Then Return "ori " + Reg + ", zero, " + rVal.ToString
 
+        Dim tstr As String
+        tstr = Strings.Right("00000000" + Hex(rVal), 8)
+
+        Return "lui " + Reg + ", $" + Strings.Left(tstr, 4) + vbCrLf +
+               "ori " + Reg + ", " + Reg + ", $" + Strings.Right(tstr, 4)
+
+    End Function
+    Private Function AddGeneratedToOutput(Str As String, ByRef MemAddr As Int32, ByRef CodeArray() As String, LineNum As Integer) As Integer
+        Dim I As Integer, lines() As String, sp() As String, rt As Integer
+        Dim CodeRet As UInt32
+
+        lines = Split(Str + vbCrLf, vbCrLf)
+        For I = 0 To lines.Count - 1
+            If lines(I) <> "" Then
+                sp = Split(lines(I) + ":", ":")
+                If sp.Count > 1 Then
+                    sp = Split(parseSyntax(lines(I)) + "        ", " ")
+                    LabeledToCodeArray(CodeArray, MemAddr, sp(0) + " " + sp(1) + " " + sp(2) + " " + sp(3) + " " + LineNum.ToString, 4)
+                Else
+                    rt = mpAsm.AssembleInstruction(lines(I), CodeRet)
+                    If rt < 0 Then Return rt
+                    FormatToCodeArray(CodeArray, MemAddr, CodeRet)
+                End If
+            End If
+        Next
+
+        Return 0
+    End Function
 
     Private Function PatchLabels(ByRef CodeOutput() As String) As Integer
         Dim I As Int64, i2 As Int32, sp() As String, MemAddr As Int32, rt As Integer
-        Dim CodeRet As UInt32, LabelType As Integer
+        Dim CodeRet As UInt32, LabelType As Integer, tStr As String, tStr2 As String
 
         For I = 0 To CodeOutput.Count - 1
             If Strings.Left(CodeOutput(I), 1) = "*" Then
@@ -1891,6 +2173,37 @@ skipBlank:
                 MemAddr = Val("&H" + Strings.Left(CodeOutput(I), 8))
 
                 Select Case sp(0)
+                    Case "hook"
+                        'hook %me $00100000 -j
+                        'hook labelname $00100000 -jal
+                        'hook labelname $00100000 -pointer
+
+                        If Strings.Left(sp(1), 1) = ":" Then sp(1) = Strings.Right(sp(1), Len(sp(1)) - 1)
+                        rt = GetLabel(sp(1), i2)
+                        If rt < 0 Then GoTo LabelNotFound
+                        sp(1) = Strings.Right("00000000" + Hex(i2), 8)
+
+                        sp(2) = Strings.Right("00000000" + Hex(Val(Replace(sp(2), "$", "&h0"))), 8)
+
+                        tStr = CodeFormat + Strings.Right(sp(2), 7)
+                        If LCase(sp(3)) = "-j" Then
+                            rt = mpAsm.AssembleInstruction("j $" + sp(1), CodeRet)
+                            If rt < 0 Then GoTo LabelAsmError
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        ElseIf LCase(sp(3)) = "-jal" Then
+                            rt = mpAsm.AssembleInstruction("jal $" + sp(1), CodeRet)
+                            If rt < 0 Then GoTo LabelAsmError
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        ElseIf LCase(sp(3)) = "-pointer" Then
+                            tStr2 = sp(1)
+                        Else
+                            rt = mpAsm.AssembleInstruction("j $" + sp(1), CodeRet)
+                            If rt < 0 Then GoTo LabelAsmError
+                            tStr2 = Strings.Right("00000000" + Hex(CodeRet), 8)
+                        End If
+
+                        CodeOutput(I) = tStr + " " + tStr2
+
                     Case "hexcode"
                         If Strings.Left(sp(1), 1) = ":" Then sp(1) = Strings.Right(sp(1), Len(sp(1)) - 1)
                         rt = GetLabel(sp(1), i2)
@@ -2048,7 +2361,11 @@ LabelAsmError:
     End Function
 
     Private Function ProjectImportScan(Pages() As String)
+        Dim ret As String
 
+        ret = SingleImportLibrary(Join(Pages, vbCrLf))
+
+        Return ret
     End Function
 
     Private Function SingleImportLibrary(PgData As String) As String
@@ -2058,6 +2375,17 @@ LabelAsmError:
         Dim Calls() As String, CallCount As Integer
         Dim Fncs() As String, FncsCount As Integer
 
+        Dim LibRet As String, Dependancies() As String, Libs() As String, CDL As New CDLibrary
+        Dim i3 As Integer, i4 As Integer, Gathered() As String, GatheredC As Integer
+        Dim ret As String, eventTable As String, threadTable As String, tStr As String, tStr2 As String
+        Dim mainHook As String
+
+        GatheredC = -1
+        ret = ""
+        eventTable = ""
+        threadTable = ""
+        mainHook = ""
+
         LibCount = -1
         CallCount = -1
         FncsCount = -1
@@ -2065,7 +2393,7 @@ LabelAsmError:
         Lines = Split(PgData + vbCrLf, vbCrLf)
         For I = 0 To Lines.Count - 2
             LineData = stripWhiteSpace(Lines(I))
-            sp = Split(parseSyntax(LineData))
+            sp = Split(parseSyntax(LineData) + "        ", " ")
             Select Case LCase(sp(0))
                 Case "import"
                     LibCount += 1
@@ -2083,6 +2411,66 @@ LabelAsmError:
                     FncsCount += 1
                     ReDim Preserve Fncs(FncsCount)
                     Fncs(FncsCount) = sp(2)
+                Case "prochook"
+                    'procHook $00100000 -j/-jal/-pointer
+
+                    mainHook = "hook :_Main_Process_Thread_Manager " + sp(1) + " " + sp(2)
+
+                    'mainHook = "address $" + Strings.Right("00000000" + Hex(Val(Replace(sp(1), "$", "&h0"))), 8) + vbCrLf
+                    'If LCase(sp(2)) = "-j" Then
+                    'mainHook += "j :_Main_Process_Thread_Manager" + vbCrLf
+                    'ElseIf LCase(sp(2)) = "-jal" Then
+                    'mainHook += "jal :_Main_Process_Thread_Manager" + vbCrLf
+                    'ElseIf LCase(sp(2)) = "-point" Then
+                    'mainHook += "hexcode :_Main_Process_Thread_Manager" + vbCrLf
+                    'Else
+                    'mainHook += "j :_Main_Process_Thread_Manager" + vbCrLf
+                    'End If
+                Case "thread"
+                    'thread main /delay 100
+                    threadTable += "hexcode :" + sp(1) + vbCrLf
+                    If LCase(sp(2)) = "/delay" Then
+                        threadTable += "hexcode " + Val(Replace(sp(3), "$", "&h0")).ToString + vbCrLf
+                    Else
+                        threadTable += "nop" + vbCrLf
+                    End If
+                    threadTable += "nop" + vbCrLf
+
+                    If LCase(sp(2)) = "/off" Or LCase(sp(3)) = "/off" Then
+                        threadTable += "hexcode 0" + vbCrLf
+                    Else
+                        If LCase(sp(4)) = "/off" Or LCase(sp(4)) = "/off" Then
+                            threadTable += "hexcode 0" + vbCrLf
+                        Else
+                            threadTable += "hexcode 1" + vbCrLf
+                        End If
+                    End If
+                    AddThread(sp(1))
+
+                Case "event"
+                    'event padInput_X $007157dc $fbff /h
+                    tStr = Strings.Right("00000000" + Hex(Val(Replace(sp(2), "$", "&h0"))), 8)
+                    tStr2 = Strings.Right(tStr, 4)
+                    tStr = Strings.Left(tStr, 4)
+                    If Val("&H" + tStr2) < 0 Then tStr = Strings.Right("0000" + Hex(Val("&H" + tStr) + 1), 4)
+
+                    eventTable += "lui a2, $" + tStr + vbCrLf
+                    eventTable += "lh a0, $" + tStr2 + "(a2)" + vbCrLf
+
+                    tStr = Strings.Right("00000000" + Hex(Val(Replace(sp(3), "$", "&h0"))), 8)
+                    If LCase(sp(4)) = "/b" Then
+                        eventTable += "addiu a1, zero, $00" + Strings.Right(tStr, 2) + vbCrLf
+                    ElseIf LCase(sp(4)) = "/h" Then
+                        eventTable += "addiu a1, zero, $" + Strings.Right(tStr, 4) + vbCrLf
+                    ElseIf LCase(sp(4)) = "/w" Then
+                        eventTable += GenerateSetRegCode(Val("&H" + tStr), "a1") + vbCrLf
+                    End If
+
+                    eventTable += "bne a0, a1, 3" + vbCrLf
+                    eventTable += "nop" + vbCrLf
+                    eventTable += "jal :" + sp(1) + vbCrLf
+                    eventTable += "addiu a2, a2, $" + tStr2 + vbCrLf
+
             End Select
         Next
         For I = 0 To CallCount
@@ -2094,12 +2482,80 @@ LabelAsmError:
             Next
         Next
 
-        Dim LibRet As String, Dependancies() As String, Libs() As String, CDL As New CDLibrary
-        Dim i3 As Integer, i4 As Integer, Gathered() As String, GatheredC As Integer
-        Dim ret As String
+        If eventTable <> "" Then
+            ret += vbCrLf
+            ret += vbCrLf
+            ret += "fnc _Main_Process_Event_Handler(void)" + vbCrLf
+            ret += "{" + vbCrLf
+            ret += eventTable + vbCrLf
+            ret += "}" + vbCrLf + vbCrLf
+        End If
 
-        GatheredC = -1
-        ret = ""
+        If ret <> "" Or threadTable <> "" Then
+            ret += vbCrLf
+            ret += vbCrLf
+            ret += "fnc _Main_Process_Thread_Manager(void) \at,v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,s0,s1,s2,s3,s4,s5,s6,s7,k0,k1,gp,fp" + vbCrLf
+            ret += "{" + vbCrLf
+            If eventTable <> "" Then ret += "call _Main_Process_Event_Handler()" + vbCrLf
+            If threadTable <> "" Then ret += "call _Main_Process_Thread_Launcher()" + vbCrLf
+            ret += "}" + vbCrLf
+        End If
+
+        If threadTable <> "" Then
+            ret += vbCrLf
+            ret += "fnc _Main_Process_Thread_Launcher(void) \s0,s1,s2" + vbCrLf
+            ret += "{" + vbCrLf
+            ret += "setreg s0, :_Main_Process_Thread_Table" + vbCrLf
+            ret += "lw t9, $0000(s0)" + vbCrLf
+
+
+            ret += "while (t9)" + vbCrLf
+            ret += "{" + vbCrLf
+
+            ret += "daddu a0, zero, zero" + vbCrLf
+            ret += "lw v0, $0004(s0)" + vbCrLf
+            ret += "lw v1, $0008(s0)" + vbCrLf
+            ret += "lw a1, $000c(s0)" + vbCrLf
+
+            ret += "if (a1 > 0)" + vbCrLf
+            ret += "{" + vbCrLf
+
+            ret += "if (v0 > 0)" + vbCrLf
+            ret += "{" + vbCrLf +
+                        "if (v1 > v0)" + vbCrLf +
+                        "{" + vbCrLf +
+                            "sw zero, $0008(s0)" + vbCrLf +
+                            "addiu a0, zero, 1" + vbCrLf +
+                        "}" + vbCrLf +
+                        "else" + vbCrLf +
+                        "{" + vbCrLf +
+                            "addiu v1, v1, 1" + vbCrLf +
+                            "sw v1, $0008(s0)" + vbCrLf +
+                        "}" + vbCrLf +
+                    "}" + vbCrLf +
+                    "else" + vbCrLf +
+                    "{" + vbCrLf +
+                        "addiu a0, zero, 1" + vbCrLf +
+                    "}" + vbCrLf +
+                    "if (a0 <> 0)" + vbCrLf +
+                    "{" + vbCrLf +
+                        "jalr t9" + vbCrLf +
+                        "nop" + vbCrLf +
+                    "}" + vbCrLf
+
+            ret += "}" + vbCrLf
+
+            ret += "s0 += 16" + vbCrLf +
+                    "lw t9, $0000(s0)" + vbCrLf
+
+            ret += "}" + vbCrLf
+            ret += "}" + vbCrLf
+            ret += "_Main_Process_Thread_Table:" + vbCrLf
+            ret += threadTable + vbCrLf
+        End If
+        ret += vbCrLf + mainHook + vbCrLf
+
+
 restartGathering:
         ReDim Dependancies(0)
         For I = 0 To CallCount

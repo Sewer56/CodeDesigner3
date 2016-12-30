@@ -6,13 +6,13 @@ address $00100000
 
 string hello "HELLO WORLD!"
 
+string hello2 "hello world!"
+
+string outp "        "
+
 fnc main(void)
 {
-	setreg s0, :hello
-	
-	call LCase(s0)
-	
-	call UCase(s0)
+	call Hex(1337, :outp, 8)
 	
 	return 1
 }

@@ -993,7 +993,12 @@ startFromTop:
             ARGS = ""
         End If
 
-
+        If Len(COM) = 8 And Len(ARGS) = 9 Then
+            tStr = Strings.Right(ARGS, 8)
+            If LCase(Hex(Val("&H" + COM))) = LCase(COM) And LCase(Hex(Val("&H" + tStr))) = LCase(tStr) Then
+                Return whiteSpace + "{c#FFeeeeee}{b}" + COM + ARGS + "{/c#}"
+            End If
+        End If
 
         If LCase(COM) = "break" Then
             If Len(Replace(Replace(Replace(Replace(ARGS, " ", ""), "(", ""), ")", ""), ";", "")) < 5 Then

@@ -164,7 +164,7 @@ Public Class frmMain
         frmMain_Resize(sender, e)
 
         SyntaxView1.TxtSource = "/*" + vbCrLf +
-            "    CodeDesigner v3 ~ Created by: Gtlcpimp" + vbCrLf +
+            "" + vbTab + "CodeDesigner v3 ~ Created by: Gtlcpimp" + vbCrLf +
             "*/" + vbCrLf + vbCrLf
 
         Me.Text = "Code Designer 3 (Classic Mode) ~ Created by: Gtlcpimp"
@@ -697,7 +697,7 @@ Public Class frmMain
                     If rt < 0 Then
                         DebugOut("Save '" + MyProject.ProjectPath + "\" + MyProject.CDS(i).FileName + ".cds' failed!")
                     Else
-                        DebugOut("Saved '" + MyProject.ProjectPath + "\" + MyProject.CDS(i).FileName + ".cds' successfully!")
+                        DebugOut("Saved '" + MyProject.CDS(i).FileName + ".cds' successfully!")
                     End If
                 Next
 
@@ -708,7 +708,7 @@ Public Class frmMain
                     MyProject.ProjectName = ""
                     DebugOut("Project file '" + MyProject.ProjectPath + "\" + MyProject.ProjectName + ".cdp' save failed!")
                 Else
-                    DebugOut("Project file '" + MyProject.ProjectPath + "\" + MyProject.ProjectName + ".cdp' saved successfully!")
+                    DebugOut("Project file '" + MyProject.ProjectName + ".cdp' saved successfully!")
                     wasSaved = True
                 End If
             Catch ex As Exception

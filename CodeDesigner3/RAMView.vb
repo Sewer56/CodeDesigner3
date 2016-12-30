@@ -458,7 +458,10 @@
                     Additionals += "{/c#}"
                 End If
         End Select
-
+        If sp(0) <> "" Then
+            disStr = Strings.Right(disStr, Len(disStr) - Len(sp(0)))
+            disStr = Strings.Left(sp(0) + "          ", 7) + disStr
+        End If
         Return disStr
     End Function
     Private Sub LoadRenderBuffer()
