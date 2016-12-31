@@ -382,3 +382,81 @@ string labelName "my string" // Creates a string, appends to the END of the code
 padding $20 // Generates 0's in the code output to the specified size
 
 
+
+====================================================================================================
+7) Threading
+
+Yes and no. It's not actual "threading" its similiar but not the actual same. The EE can't do real
+multi-threading. So what we are going to be doing, is creating a list of functions that will be
+executed in order. Just to keep it simple to understanding, we're going to call it threading.
+
+First off let's start with how to declare a thread. Syntax is very simple:
+
+thread myFunc
+
+Simple enough, right? Let's take a look at the options available for it:
+
+thread myFunc /delay 100
+thread myFunc /off
+thread myFunc /delay 100 /off
+
+
+What does that mean? Well, the delay is an iteration delay to basically "slow down" how often it
+executes. So if you follow the example, a delay of 100 means it will only execute the thread every
+100th iteration of the main process. As for the "off", that means that our thread is not going to
+be active until specified within one of our actual functions. Default is on, without delay.
+
+A thread can be started and stopped, also put to sleep (set on delay) or woken up (delay removed).
+The syntax is simple:
+
+thread.sleep (myFunc, 1000) // Put's thread "myFunc" to a delay to only execute once every 1000th iteration
+thread.wakeup (myFunc) // Removes the delay and allows it to run as fast as the main process can call it
+thread.stop (myFunc) // Stops the execution of the thread entirely, it will never execute until its started
+thread.start (myFunc) // Starts a thread back up so it will start executing again
+
+
+====================================================================================================
+8) Data-Watch Events
+
+Data-Watch events are basically a thread that watches a memory address, and executes your function
+if the data you set to watch appears in the memory address. Think of it like an IF statement, but
+simplified, on a higher level. Here's the syntax:
+
+event myFunc $00100000 $12345678 /w
+
+In the syntax, you declare your functions name, then the memory address to watch, followed by the
+data that you are looking for. The "/w" is the statement that declares if it's a byte "/b", half word
+"/h", or word "/w".
+
+Here's a live example:
+
+event padInput_X $007157dc $bfff /h
+
+In this example, we are setting an event to watch if the button 'x' is being held down
+(on SOCOM: Combined Assault)
+
+
+====================================================================================================
+8) Hooks
+
+How can any of our routines run if we don't hook them from the game? We now have a simplified method
+for this. As long as you know what the memory address is you want to hook from, you can use the HOOK
+feature. Let's look at the syntax:
+
+hook myFunc $00100000 -j
+
+In this example, we are placing a "jump" hook to our function at memory address $00100000. We can do
+other types of hooks by changing the option. For example:
+
+-j = Jump
+-jal = Jump and Link
+-pointer = Pointer
+
+Pretty obvious, and very simple. Now for something important. We introduced threading, and events.
+Now we obviously must hook our handler that operates those features. For that, we have a seperate
+command called "ProcHook" (short for Process Hook). If we know what the memory address is that
+we want to hook from, and have our threads and events set up, we will do this:
+
+prochook $00100000 -j // or -jal or -pointer whichever is needed
+
+This will allow our event handler and thread manager to run.

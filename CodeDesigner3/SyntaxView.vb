@@ -961,7 +961,7 @@ startFromTop:
     Private Function FormatSyntax(str As String) As String
         Dim tStr As String, sp() As String, COM As String, ARGS As String
         Dim argOut As String, i As Integer, i2 As Integer, colSet As Integer, rt As Boolean
-        Dim stopRead As Boolean, whiteSpace As String
+        Dim stopRead As Boolean, whiteSpace As String, cmtStrip As String
 
         tStr = SafeChars(str)
         If EnableSyntaxHL = False Then Return tStr
@@ -1027,6 +1027,11 @@ startFromTop:
             End If
         Next
 
+        sp = Split(ARGS + " //", "//")
+        ARGS = sp(0)
+        cmtStrip = ""
+        If sp(1) <> "" Then cmtStrip = "{c#FF00FF00}{i}//" + sp(1) + "{/c#}"
+
         argOut = ""
         i = 1
         Do
@@ -1075,7 +1080,7 @@ startFromTop:
 
         Loop Until i > Len(ARGS)
 
-        Return whiteSpace + COM + argOut
+        Return whiteSpace + COM + argOut + cmtStrip
 
     End Function
     Private Sub LoadRenderBuffer()

@@ -1484,6 +1484,7 @@ process_While_Loop:
                         If Strings.Left(LCase(Lines(I + 1)), 3) = "for" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "Single IF statements cannot be followed by FOR")
                         If Strings.Left(LCase(Lines(I + 1)), 5) = "while" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "Single IF statements cannot be followed by WHILE")
                         If Strings.Left(LCase(Lines(I + 1)), 6) = "switch" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "Single IF statements cannot be followed by SWITCH")
+                        If Strings.Left(LCase(Lines(I + 1)), 6) = "thread" Then Return CreateError("", SyntaxError_BadIFStatement, I + 1, Lines(I + 1), "Single IF statements cannot be followed by a thread modifier")
 
                         Dim hasElse As Integer, ifLeaveSequence As String, ifElseSequence As String
                         hasElse = -1
@@ -2463,6 +2464,8 @@ LabelAsmError:
                     ElseIf LCase(sp(4)) = "/h" Then
                         eventTable += "addiu a1, zero, $" + Strings.Right(tStr, 4) + vbCrLf
                     ElseIf LCase(sp(4)) = "/w" Then
+                        eventTable += GenerateSetRegCode(Val("&H" + tStr), "a1") + vbCrLf
+                    Else
                         eventTable += GenerateSetRegCode(Val("&H" + tStr), "a1") + vbCrLf
                     End If
 
