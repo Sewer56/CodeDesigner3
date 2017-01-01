@@ -366,7 +366,7 @@ Partial Class frmMain
         '
         'SelectedFileToolStripMenuItem
         '
-        Me.SelectedFileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SelectedFileToolStripMenuItem2, Me.EntireProjectToolStripMenuItem1})
+        Me.SelectedFileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.EntireProjectToolStripMenuItem1, Me.SelectedFileToolStripMenuItem2})
         Me.SelectedFileToolStripMenuItem.Name = "SelectedFileToolStripMenuItem"
         Me.SelectedFileToolStripMenuItem.Size = New System.Drawing.Size(126, 22)
         Me.SelectedFileToolStripMenuItem.Text = "Compile"
@@ -449,13 +449,13 @@ Partial Class frmMain
         'RAWToolStripMenuItem
         '
         Me.RAWToolStripMenuItem.Name = "RAWToolStripMenuItem"
-        Me.RAWToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
+        Me.RAWToolStripMenuItem.Size = New System.Drawing.Size(130, 22)
         Me.RAWToolStripMenuItem.Text = ".RAW"
         '
         'FileExtractToolStripMenuItem
         '
         Me.FileExtractToolStripMenuItem.Name = "FileExtractToolStripMenuItem"
-        Me.FileExtractToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
+        Me.FileExtractToolStripMenuItem.Size = New System.Drawing.Size(130, 22)
         Me.FileExtractToolStripMenuItem.Text = "File Extract"
         '
         'ExportToolStripMenuItem
@@ -576,7 +576,6 @@ Partial Class frmMain
         '
         'SettingsToolStripMenuItem
         '
-        Me.SettingsToolStripMenuItem.Enabled = False
         Me.SettingsToolStripMenuItem.Name = "SettingsToolStripMenuItem"
         Me.SettingsToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
         Me.SettingsToolStripMenuItem.Text = "Settings"

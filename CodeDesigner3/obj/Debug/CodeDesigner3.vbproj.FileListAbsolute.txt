@@ -17,3 +17,4 @@ C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\o
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Debug\CodeDesigner3.frmInject.resources
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Debug\CodeDesigner3.frmExtract.resources
 C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Debug\CodeDesigner3.RAMView.resources
+C:\Users\Dom\Documents\Visual Studio 2015\Projects\CodeDesigner3\CodeDesigner3\obj\Debug\CodeDesigner3.frmSettings.resources

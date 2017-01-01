@@ -1,7 +1,307 @@
 ﻿Module GlobalConfiguration
+    Private Configs() As ConfigSetting, CfgCount As Integer
 
+    Public Structure ConfigSetting
+        Dim SettingType As String
+        Dim SettingName As String
+        Dim SettingValue As String
+        Dim Special As String
+    End Structure
+
+    Public Sub LoadConfig(ByRef SV As SyntaxView, ByRef mpAsm As MIPSAssembly)
+        Dim ConfigFile As String, Lines() As String, sp() As String, rt As Integer
+        Dim i As Integer
+
+        ConfigFile = ""
+        CfgCount = -1
+        ReDim Configs(0)
+
+        If My.Computer.FileSystem.FileExists(Application.StartupPath + "\CodeDesigner3.ini") Then
+            rt = ReadFile(Application.StartupPath + "\CodeDesigner3.ini", ConfigFile)
+            If rt < 0 Then GoTo readFailed
+            Lines = Split(ConfigFile + vbCrLf, vbCrLf)
+            For i = 0 To Lines.Count - 1
+                sp = Split(Lines(i) + ";;;;;;", ";")
+                If sp(0) <> "" Then
+                    SetConfig(sp(0), sp(1), sp(2), sp(3))
+                End If
+            Next
+        Else
+readFailed:
+            LoadDefault(mpAsm)
+        End If
+    End Sub
+
+    Public Sub SaveConfig()
+        Dim ConfigFile As String, i As Integer, rt As Integer
+
+        ConfigFile = ""
+        For i = 0 To CfgCount
+            With Configs(i)
+                ConfigFile += .SettingName + ";" + .SettingValue + ";" + .SettingType + ";" + .Special + vbCrLf
+            End With
+        Next
+
+        rt = SaveFile(Application.StartupPath + "\CodeDesigner3.ini", ConfigFile)
+
+    End Sub
+
+    Public Sub SetConfig(SName As String, SVal As String, Optional SType As String = Nothing, Optional SSpecial As String = Nothing)
+        Dim i As Integer
+
+        For i = 0 To CfgCount
+            With Configs(i)
+                If .SettingName = SName Then
+                    .SettingValue = SVal
+                    If SType IsNot Nothing Then .SettingType = SType
+                    If SSpecial IsNot Nothing Then .Special = SSpecial
+                    Exit Sub
+                End If
+            End With
+        Next
+
+        CfgCount += 1
+        ReDim Preserve Configs(CfgCount)
+        With Configs(CfgCount)
+            .SettingName = SName
+            .SettingValue = SVal
+            If SType IsNot Nothing Then .SettingType = SType
+            If SSpecial IsNot Nothing Then .Special = SSpecial
+        End With
+    End Sub
+
+    Public Function GetConfig(SName As String, Optional ByRef SType As String = Nothing, Optional ByRef SSpecial As String = Nothing) As String
+        Dim i As Integer, ret As String
+
+        ret = ""
+        For i = 0 To CfgCount
+            With Configs(i)
+                If .SettingName = SName Then
+                    If SType IsNot Nothing Then SType = .SettingType
+                    If SSpecial IsNot Nothing Then SSpecial = .Special
+                    Return .SettingValue
+                End If
+            End With
+        Next
+
+        Return ret
+    End Function
+
+    Public Function CopyConfigs(ByRef Cfgs() As ConfigSetting) As Integer
+        Dim i As Integer
+
+        If CfgCount < 0 Then Return -1
+        ReDim Cfgs(CfgCount)
+        For i = 0 To CfgCount
+            With Cfgs(i)
+                .SettingType = Configs(i).SettingType
+                .SettingName = Configs(i).SettingName
+                .SettingValue = Configs(i).SettingValue
+                .Special = Configs(i).Special
+            End With
+        Next
+
+        Return CfgCount
+    End Function
+
+    Public Sub ApplyChanges(ByRef Cfgs() As ConfigSetting, ByRef SV As SyntaxView, ByRef mpAsm As MIPSAssembly)
+        Dim i As Integer
+
+        CfgCount = Cfgs.Count - 1
+        ReDim Configs(Cfgs.Count - 1)
+        For i = 0 To CfgCount
+            With Cfgs(i)
+                Configs(i).SettingType = .SettingType
+                Configs(i).SettingName = .SettingName
+                Configs(i).SettingValue = .SettingValue
+                Configs(i).Special = .Special
+            End With
+        Next
+
+        SVResetConfig(SV, mpAsm)
+    End Sub
+
+    Public Sub LoadDefault(ByRef mpAsm As MIPSAssembly)
+        CfgCount = -1
+        ReDim Configs(0)
+
+        SetConfig("ASM_Language", "MIPS32", "PS2")
+        SetConfig("ASM_OutputFormat", "2%07X %08X")
+
+        SetConfig("SVFont", "Courier New")
+        SetConfig("SVFontSize", "12")
+        SetConfig("SVFontColor", "FFffffff")
+        SetConfig("SVBackColor", "FF111111")
+        SetConfig("SVLineColor", "FF222222")
+        SetConfig("SVSelColor", "FF6060C0")
+
+        SetConfig("SVMultiComments", "FF00ff00",, "{i}")
+        SetConfig("SVSingleComments", "FF00ff00",, "{i}")
+        SetConfig("SVInvalid", "FFff0000",, "{u}")
+
+        SetConfig("SVCOM:hexcode", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:code", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:setreg", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:setfpr", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:setfloat", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:address", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:alloc", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:string", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:print", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:padding", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:call", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:goto", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:define", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:prochook", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:hook", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:thread", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:thread.start", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:thread.stop", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:thread.sleep", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:thread.wakeup", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:event", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:import", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:if", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:else", "FFff00ff",, "{b}")
+        SetConfig("SVARG:if", "FFff00ff")
+
+        SetConfig("SVCOM:switch", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:case", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:default", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:%break", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:fnc", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:return", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:extern", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:for", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:while", "FFff00ff",, "{b}")
+
+        SetConfig("SVCOM:%7b", "FFffff00",, "{b}")
+        SetConfig("SVCOM:%7d", "FFffff00",, "{b}")
+
+
+
+        SetConfig("SVARG:zero", "FFaaaaaa")
+        SetConfig("SVARG:at", "FF00a070")
+        SetConfig("SVARG:v0", "FFff8000")
+        SetConfig("SVARG:v1", "FFff8000")
+        SetConfig("SVARG:a0", "FF0080ff")
+        SetConfig("SVARG:a1", "FF0080ff")
+        SetConfig("SVARG:a2", "FF0080ff")
+        SetConfig("SVARG:a3", "FF0080ff")
+        SetConfig("SVARG:t0", "FF904090")
+        SetConfig("SVARG:t1", "FF904090")
+        SetConfig("SVARG:t2", "FF904090")
+        SetConfig("SVARG:t3", "FF904090")
+        SetConfig("SVARG:t4", "FF904090")
+        SetConfig("SVARG:t5", "FF904090")
+        SetConfig("SVARG:t6", "FF904090")
+        SetConfig("SVARG:t7", "FF904090")
+        SetConfig("SVARG:t8", "FF904090")
+        SetConfig("SVARG:t9", "FF904090")
+        SetConfig("SVARG:s0", "FFc0c040")
+        SetConfig("SVARG:s1", "FFc0c040")
+        SetConfig("SVARG:s2", "FFc0c040")
+        SetConfig("SVARG:s3", "FFc0c040")
+        SetConfig("SVARG:s4", "FFc0c040")
+        SetConfig("SVARG:s5", "FFc0c040")
+        SetConfig("SVARG:s6", "FFc0c040")
+        SetConfig("SVARG:s7", "FFc0c040")
+        SetConfig("SVARG:fp", "FFc0ffc0")
+        SetConfig("SVARG:gp", "FF80ff00")
+        SetConfig("SVARG:sp", "FFffff00")
+        SetConfig("SVARG:k0", "FF808000")
+        SetConfig("SVARG:k1", "FF808000")
+        SetConfig("SVARG:ra", "FF900000")
+
+
+        SetConfig("SVARG:ee", "FFff8080")
+        SetConfig("SVARG:cop1", "FFff8080")
+        SetConfig("SVARG:void", "FFff8080")
+
+
+
+        Dim i As Integer
+        For i = 0 To 258
+            SetConfig("SVCOM:" + LCase(mpAsm.GetInstrName(i)), "FFffffff",, "{b}")
+        Next
+
+
+        SetConfig("SVCOM:at", "FF00a070",, "{b}")
+        SetConfig("SVCOM:v0", "FFff8000",, "{b}")
+        SetConfig("SVCOM:v1", "FFff8000",, "{b}")
+        SetConfig("SVCOM:a0", "FF0080ff",, "{b}")
+        SetConfig("SVCOM:a1", "FF0080ff",, "{b}")
+        SetConfig("SVCOM:a2", "FF0080ff",, "{b}")
+        SetConfig("SVCOM:a3", "FF0080ff",, "{b}")
+        SetConfig("SVCOM:t0", "FF904090",, "{b}")
+        SetConfig("SVCOM:t1", "FF904090",, "{b}")
+        SetConfig("SVCOM:t2", "FF904090",, "{b}")
+        SetConfig("SVCOM:t3", "FF904090",, "{b}")
+        SetConfig("SVCOM:t4", "FF904090",, "{b}")
+        SetConfig("SVCOM:t5", "FF904090",, "{b}")
+        SetConfig("SVCOM:t6", "FF904090",, "{b}")
+        SetConfig("SVCOM:t7", "FF904090",, "{b}")
+        SetConfig("SVCOM:t8", "FF904090",, "{b}")
+        SetConfig("SVCOM:t9", "FF904090",, "{b}")
+        SetConfig("SVCOM:s0", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s1", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s2", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s3", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s4", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s5", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s6", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:s7", "FFc0c040",, "{b}")
+        SetConfig("SVCOM:fp", "FFc0ffc0",, "{b}")
+        SetConfig("SVCOM:gp", "FF80ff00",, "{b}")
+        SetConfig("SVCOM:sp", "FFffff00",, "{b}")
+        SetConfig("SVCOM:k0", "FF808000",, "{b}")
+        SetConfig("SVCOM:k1", "FF808000",, "{b}")
+        SetConfig("SVCOM:ra", "FF900000",, "{b}")
+
+    End Sub
+
+
+
+
+    Public Sub SVResetConfig(ByRef SV As SyntaxView, ByRef mpAsm As MIPSAssembly)
+        Dim i As Integer, sp() As String
+
+        SV.ClearSyntaxConfig()
+        For i = 0 To CfgCount
+            With Configs(i)
+                If Strings.Left(.SettingName, 5) = "SVCOM" Then
+                    sp = Split(.SettingName, ":")
+                    SV.SetSyntaxCmdConfig(sp(1), Val("&H" + .SettingValue), .Special)
+                ElseIf Strings.Left(.SettingName, 5) = "SVARG" Then
+                    sp = Split(.SettingName, ":")
+                    SV.SetSyntaxArgConfig(sp(1), Val("&H" + .SettingValue))
+                Else
+                    Select Case .SettingName
+                        Case "SVFont"
+                            SV.Font_Name = .SettingValue
+                        Case "SVFontSize"
+                            SV.Font_Size = Val(.SettingValue)
+                        Case "SVFontColor"
+                            SV.Font_Color = Val("&H" + .SettingValue)
+                        Case "SVBackColor"
+                            SV.Back_Color = Val("&H" + .SettingValue)
+                        Case "SVLineColor"
+                            SV.CurrentLineHLColor = Val("&H" + .SettingValue)
+                        Case "SVSelColor"
+                            SV.SelectionHighlightColor = Val("&H" + .SettingValue)
+                    End Select
+                End If
+            End With
+        Next
+    End Sub
 
     Public Sub SVUseDefault(ByRef SV As SyntaxView, ByRef mpAsm As MIPSAssembly)
+
         SV.SetSyntaxCmdConfig("hexcode", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("code", Val("&HFFff00ff"), "{b}")
         SV.SetSyntaxCmdConfig("setreg", Val("&HFFff00ff"), "{b}")

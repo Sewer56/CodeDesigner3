@@ -22,6 +22,7 @@
         myFunc = -1
         isFunc = False
         Brc = -1
+        ReDim Funcs(0)
         For i = 0 To Lines.Count - 1
             sp = Split(parseSyntax(Lines(i)) + "      ", " ")
             If LCase(sp(0)) = "fnc" Then
@@ -42,6 +43,27 @@
         FuncCount = myFunc
 
         If FuncCount >= 0 Then isMakeable = True
+    End Sub
+
+    Private Sub SortFuncList()
+        Dim i As Integer, didSwap As Boolean, tmp As New FuncInfo
+
+        Do
+            didSwap = False
+            For i = 0 To FuncCount - 1
+                If Strings.StrComp(Funcs(i).FuncName, Funcs(i + 1).FuncName) > 0 Then
+                    tmp.FuncName = Funcs(i).FuncName
+                    tmp.FuncData = Funcs(i).FuncData
+
+                    Funcs(i).FuncName = Funcs(i + 1).FuncName
+                    Funcs(i).FuncData = Funcs(i + 1).FuncData
+
+                    Funcs(i + 1).FuncName = tmp.FuncName
+                    Funcs(i + 1).FuncData = tmp.FuncData
+                    didSwap = True
+                End If
+            Next
+        Loop Until didSwap = False
     End Sub
 
     Private Sub ShowFuncList()
@@ -114,6 +136,7 @@
     Private Sub frmBuildLibrary_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         isMakeable = False
         ParseSource()
+        SortFuncList()
         ShowFuncList()
     End Sub
 
@@ -164,6 +187,7 @@
         If ret = "" Then Return ret
 
         cmtStrip = Split(ret + "//", "//")
+        If Len(cmtStrip(0)) <= 0 Then Return ""
         ret = cmtStrip(0)
 
         ret = Replace(ret, vbTab, " ")
@@ -175,6 +199,7 @@
         ret = Replace(ret, ")", " ")
         ret = Replace(ret, "0x", "$")
         ret = stripSpaces(ret)
+
         Return ret
     End Function
     Private Function stripSpaces(strIn As String) As String

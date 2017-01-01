@@ -158,7 +158,10 @@
         Return "Unkown Error"
     End Function
 
-    Public Sub Init(ByRef Asm As MIPSAssembly)
+    Public Delegate Sub DebugOutput(Str As String)
+    Private debugOut As DebugOutput
+
+    Public Sub Init(ByRef Asm As MIPSAssembly, ByRef dbgFunc As DebugOutput)
         mpAsm = Asm
 
         FooterCount = -1
@@ -166,6 +169,7 @@
         LBCount = -1
         ThreadCount = -1
         CodeFormat = "2"
+        debugOut = dbgFunc
 
     End Sub
 
@@ -457,13 +461,17 @@ updateFunc:
         Dim MemAddr As Int32, CodeRet As UInt32, tStr2 As String
         Dim CodeOutput() As String, rt2 As Integer, sp3() As String
         Dim CurrentFunc As Integer, fncScan As Boolean, myScope As Integer
-        Dim PageData As String
+        Dim PageData As String, SILData As String
 
         If isProj = False Then
             ClearThreads()
-            PageData = Src + SingleImportLibrary(Src)
+            SILData = SingleImportLibrary(Src)
+            PageData = Src + SILData
+            If SILData = "{%ERROR%}" Then
+                Return ErrDetail.ErrorNumber
+            End If
         Else
-            PageData = Src
+                PageData = Src
         End If
 
         fncScan = True
@@ -2476,14 +2484,6 @@ LabelAsmError:
 
             End Select
         Next
-        For I = 0 To CallCount
-            For i2 = 0 To FncsCount
-                If Calls(I) = Fncs(i2) Then Calls(I) = ""
-            Next
-            For i2 = I + 1 To CallCount
-                If Calls(I) = Calls(i2) Then Calls(i2) = ""
-            Next
-        Next
 
         If eventTable <> "" Then
             ret += vbCrLf
@@ -2495,6 +2495,7 @@ LabelAsmError:
         End If
 
         If ret <> "" Or threadTable <> "" Then
+            debugOut("Notes: Thread management enabled")
             ret += vbCrLf
             ret += vbCrLf
             ret += "fnc _Main_Process_Thread_Manager(void) \at,v0,v1,a0,a1,a2,a3,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,s0,s1,s2,s3,s4,s5,s6,s7,k0,k1,gp,fp" + vbCrLf
@@ -2556,9 +2557,19 @@ LabelAsmError:
             ret += "_Main_Process_Thread_Table:" + vbCrLf
             ret += threadTable + vbCrLf
         End If
+        If ret <> "" And mainHook = "" Then debugOut("Warning: Thread management enabled without declaring process hook")
+        If ret = "" And mainHook <> "" Then debugOut("Warning: Process hook declared without using thread management")
         ret += vbCrLf + mainHook + vbCrLf
 
 
+        For I = 0 To CallCount
+            For i2 = 0 To FncsCount
+                If Calls(I) = Fncs(i2) Then Calls(I) = ""
+            Next
+            For i2 = I + 1 To CallCount
+                If Calls(I) = Calls(i2) Then Calls(i2) = ""
+            Next
+        Next
 restartGathering:
         ReDim Dependancies(0)
         For I = 0 To CallCount
@@ -2571,12 +2582,15 @@ restartGathering:
                     LibRet = CDL.LoadFromLibrary(Libraries(i2), Calls(I), Dependancies)
 
 
-                    If LibRet = "" Then
-                        frmMain.DebugOut("Library '" + Libraries(i2) + "' either doesn't contain '" + Calls(I) + "' or doesn't exist")
-                        Return ""
-                    End If
+                    'If LibRet = "" Then
+                    '    debugOut("Library '" + Libraries(i2) + "' either doesn't contain '" + Calls(I) + "' or doesn't exist")
+                    '    CreateError("", SyntaxError_LabelNotFound, 0, "", "Import from library failed")
+                    '    Return "{%ERROR%}"
+                    'End If
 
                     If LibRet <> "" Then
+                        debugOut("Importing '" + Calls(I) + "' from library '" + Libraries(i2) + "'")
+
                         GatheredC += 1
                         ReDim Preserve Gathered(GatheredC)
                         Gathered(GatheredC) = Calls(I)
@@ -2607,6 +2621,7 @@ restartGathering:
         If ret = "" Then Return ret
 
         cmtStrip = Split(ret + "//", "//")
+        If Len(cmtStrip(0)) <= 0 Then Return ""
         ret = cmtStrip(0)
 
         ret = Replace(ret, vbTab, " ")
@@ -2626,10 +2641,10 @@ restartGathering:
         Do
             lastLen = Len(ret)
             ret = Replace(ret, "  ", " ")
-            If Left(ret, 1).Equals(" ") Then ret = Right(ret, ret.Length - 1)
-            If Right(ret, 1).Equals(" ") Then ret = Left(ret, ret.Length - 1)
+            If Left(ret, 1).Equals(" ") Then ret = Right(ret, Len(ret) - 1)
+            If Right(ret, 1).Equals(" ") Then ret = Left(ret, Len(ret) - 1)
             If ret = "" Then Return ""
-        Loop Until lastLen = ret.Length
+        Loop Until lastLen = Len(ret)
         Return ret
     End Function
     Private Function stripWhiteSpace(strIn As String) As String

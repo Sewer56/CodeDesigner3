@@ -152,14 +152,17 @@ Public Class frmMain
         mpCom = New Compiler
 
         mpAsm.init()
-        mpCom.Init(mpAsm)
+        mpCom.Init(mpAsm, AddressOf DebugOut)
 
         SyntaxView1.Init()
         lstFiles.Items.Clear()
         lstFiles.Items.Add("New File")
         lstFiles.SelectedIndex = 0
 
-        SVUseDefault(SyntaxView1, mpAsm)
+        LoadConfig(SyntaxView1, mpAsm)
+        SVResetConfig(SyntaxView1, mpAsm)
+
+        'SVUseDefault(SyntaxView1, mpAsm)
         GC.Collect()
         frmMain_Resize(sender, e)
 
@@ -958,6 +961,7 @@ Public Class frmMain
         Dim Src As String, SrcCode As String, rt As Integer, fBL As New frmBuildLibrary
 
         Src = SyntaxView1.TxtSource
+        SrcCode = ""
 
         rt = mpCom.CompileSingle(Src, SrcCode, False)
         If rt < 0 Then
@@ -1104,6 +1108,13 @@ Public Class frmMain
         fE.ShowDialog()
         GC.Collect()
 
+    End Sub
+
+    Private Sub SettingsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles SettingsToolStripMenuItem.Click
+        Dim fs As New frmSettings
+        fs.Init(SyntaxView1, mpAsm)
+        fs.ShowDialog()
+        GC.Collect()
     End Sub
 
     Private Sub ProjectStyleToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ProjectStyleToolStripMenuItem.Click

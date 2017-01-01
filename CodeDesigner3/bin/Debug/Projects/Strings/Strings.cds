@@ -216,9 +216,30 @@ C Syntax Equivalent:
 */
 fnc strConcat(EE a0, EE a1) \s0,s1,s2
 {
+	s0 = a0
+	s1 = a1
 	
+	// Find the end of the destination string
+	lb v0, $0000(s0)
+	while (v0)
+	{
+		s0++
+		lb v0, $0000(s0)
+	}
+	
+	// Copy the source string to the destination string
+	lb v0, $0000(s1)
+	while (v0)
+	{
+		sb v0, $0000(s0)
+		s0++
+		s1++
+		lb v0, $0000(s1)
+	}
+	
+	// Make sure we place a NULL at the end of the string
+	sb zero, $0000(s0)
 }
-
 
 //============================================================
 // String Compare -> Compares 2 Strings

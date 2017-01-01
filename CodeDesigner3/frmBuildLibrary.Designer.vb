@@ -81,6 +81,7 @@ Partial Class frmBuildLibrary
         Me.txtFunc.ScrollBars = System.Windows.Forms.ScrollBars.Both
         Me.txtFunc.Size = New System.Drawing.Size(378, 356)
         Me.txtFunc.TabIndex = 4
+        Me.txtFunc.WordWrap = False
         '
         'Button1
         '

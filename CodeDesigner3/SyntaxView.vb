@@ -56,6 +56,98 @@
         End Set
     End Property
 
+    Public Property AllowSyntaxing() As Boolean
+        Get
+            Return EnableSyntaxHL
+        End Get
+        Set(value As Boolean)
+            EnableSyntaxHL = value
+            Me.Invalidate()
+        End Set
+    End Property
+
+    Public Property HighlightCurrentLine() As Boolean
+        Get
+            Return EnableLineHL
+        End Get
+        Set(value As Boolean)
+            EnableLineHL = value
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'BgColor = Val("&HFF111111")
+    Public Property Back_Color() As Integer
+        Get
+            Return BgColor
+        End Get
+        Set(newCol As Integer)
+            BgColor = newCol
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'FontName = "Courier New"
+    Public Property Font_Name() As String
+        Get
+            Return FontName
+        End Get
+        Set(newFont As String)
+            FontName = newFont
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'FontSize = 12
+    Public Property Font_Size() As Integer
+        Get
+            Return FontSize
+        End Get
+        Set(newSize As Integer)
+            FontSize = newSize
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'FontColor = Val("&HFFffffff")
+    Public Property Font_Color() As Integer
+        Get
+            Return FontColor
+        End Get
+        Set(newColor As Integer)
+            FontColor = newColor
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'LineHLColor = Val("&HFF222222")
+    Public Property CurrentLineHLColor() As Integer
+        Get
+            Return LineHLColor
+        End Get
+        Set(newColor As Integer)
+            LineHLColor = newColor
+            Me.Invalidate()
+        End Set
+    End Property
+
+    'SelectionHLColor = Val("&HFF6060C0")
+    Public Property SelectionHighlightColor() As Integer
+        Get
+            Return SelectionHLColor
+        End Get
+        Set(newColor As Integer)
+            SelectionHLColor = newColor
+            Me.Invalidate()
+        End Set
+    End Property
+
+
+
+
+
+
+
     Public Sub GotoLine(LineNum As Int64)
         If LineNum > AllLines.Count - 1 Then Exit Sub
         CurLine = LineNum
@@ -232,7 +324,10 @@ startFromTop:
             Next
         Loop Until didSwap = False
     End Sub
-
+    Public Sub ClearSyntaxConfig()
+        ReDim SxCMD(0)
+        ReDim SxARG(0)
+    End Sub
     Public Sub SetSyntaxCmdConfig(ByVal StrCmd As String, ByVal IntCol As Integer, ByVal Specials As String)
         Dim i As Integer
 
@@ -296,32 +391,76 @@ startFromTop:
 
         SortSyntaxing()
     End Sub
+
+
     Private Function GetCmdSyntaxColor(StrCmd As String, ByRef ColOut As Integer, ByRef SpecOut As String) As Boolean
         Dim i As Integer
         If SxCMD Is Nothing Then Return False
 
-        For i = 0 To SxCMD.Count - 1
-            If LCase(StrCmd) = LCase(SxCMD(i).sName) Then
-                ColOut = SxCMD(i).sColor
-                SpecOut = SxCMD(i).special
-                Return True
-            End If
-        Next
+        Dim high As Integer, low As Integer
+
+        low = 0
+        high = SxCMD.Count - 1
+
+        While (low <= high)
+            i = (low + high) \ 2
+            Select Case Strings.StrComp(LCase(StrCmd), LCase(SxCMD(i).sName))
+                Case -1
+                    high = i - 1
+                Case 0
+                    ColOut = SxCMD(i).sColor
+                    SpecOut = SxCMD(i).special
+                    Return True
+                Case 1
+                    low = i + 1
+            End Select
+        End While
 
         Return False
+
+        'For i = 0 To SxCMD.Count - 1
+        '    If LCase(StrCmd) = LCase(SxCMD(i).sName) Then
+        '        ColOut = SxCMD(i).sColor
+        '        SpecOut = SxCMD(i).special
+        '        Return True
+        '    End If
+        'Next
+
+        'Return False
     End Function
     Private Function GetArgSyntaxColor(StrArg As String, ByRef ColOut As Integer) As Boolean
         Dim i As Integer
         If SxARG Is Nothing Then Return False
 
-        For i = 0 To SxARG.Count - 1
-            If LCase(StrArg) = LCase(SxARG(i).sName) Then
-                ColOut = SxARG(i).sColor
-                Return True
-            End If
-        Next
+        Dim high As Integer, low As Integer
+
+        low = 0
+        high = SxARG.Count - 1
+
+        While (low <= high)
+            i = (low + high) \ 2
+            Select Case Strings.StrComp(LCase(StrArg), LCase(SxARG(i).sName))
+                Case -1
+                    high = i - 1
+                Case 0
+                    ColOut = SxARG(i).sColor
+                    Return True
+                Case 1
+                    low = i + 1
+            End Select
+        End While
 
         Return False
+
+
+        'For i = 0 To SxARG.Count - 1
+        '    If LCase(StrArg) = LCase(SxARG(i).sName) Then
+        '        ColOut = SxARG(i).sColor
+        '        Return True
+        '    End If
+        'Next
+        '
+        'Return False
     End Function
 
     Public Sub DeleteSelection()
@@ -1456,13 +1595,16 @@ startFromTop:
     End Sub
 
     Private Sub SyntaxView_MouseWheel(sender As Object, e As MouseEventArgs) Handles Me.MouseWheel
+        Dim scrollAmmount As Integer
+
         If VScroll.Visible = False Then Exit Sub
 
         ResizeScrollbars()
 
         If e.Delta > 0 Then
-            If RenderStart > 3 Then
-                RenderStart -= 3
+            scrollAmmount = (e.Delta \ 120) * 3
+            If RenderStart > scrollAmmount Then
+                RenderStart -= scrollAmmount
                 VScroll.Value = RenderStart
                 Me.Invalidate()
             Else
@@ -1471,8 +1613,9 @@ startFromTop:
                 Me.Invalidate()
             End If
         ElseIf e.Delta < 0 Then
+            scrollAmmount = ((0 - e.Delta) \ 120) * 3
             If RenderStart + RenderLines < AllLines.Count Then
-                RenderStart += 3
+                RenderStart += scrollAmmount
                 If RenderStart + RenderLines > AllLines.Count Then
                     RenderStart = (AllLines.Count) - RenderLines
                 End If
