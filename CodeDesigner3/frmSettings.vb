@@ -3,7 +3,7 @@
     Private NewConfigs() As ConfigSetting, SynView As SyntaxView, mpAsm As MIPSAssembly
     Private SelectedConfig As Integer
 
-
+    'Syntax View Specifics
     Private SV_BGCol_Index As Integer, SV_Font_Index As Integer, SV_FontColor_Index As Integer
     Private SV_FontSize_Index As Integer, SV_LineHL_Index As Integer, SV_Sel_Index As Integer
     Private SV_RenderString As String, SV_CanDraw As Boolean
@@ -70,6 +70,10 @@
                         Case "SVCOM:setfloat"
                             lstCMDColors.Items.Add("[" + Strings.Right("0000" + i.ToString, 4) + "] " + sp(1))
                         Case "SVCOM:address"
+                            lstCMDColors.Items.Add("[" + Strings.Right("0000" + i.ToString, 4) + "] " + sp(1))
+                        Case "SVCOM:addradd"
+                            lstCMDColors.Items.Add("[" + Strings.Right("0000" + i.ToString, 4) + "] " + sp(1))
+                        Case "SVCOM:memalign"
                             lstCMDColors.Items.Add("[" + Strings.Right("0000" + i.ToString, 4) + "] " + sp(1))
                         Case "SVCOM:alloc"
                             lstCMDColors.Items.Add("[" + Strings.Right("0000" + i.ToString, 4) + "] " + sp(1))

@@ -451,6 +451,7 @@ updateFunc:
         End If
 
         cOut = Join(Output, vbCrLf) + vbCrLf + FootOutput
+        cOut = Replace(cOut, vbCrLf + vbCrLf, vbCrLf)
 
         Return 0
     End Function
@@ -521,7 +522,23 @@ compileFooter:
                     If sp(1) = "" Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Must have a name for the allocated space")
                     If sp(2) = "" Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Memory allocation requires a size")
 
-                    AddFooter("", I, "padding " + sp(2), sp(1))
+                    AddFooter("", I, "addradd " + sp(2), sp(1))
+                Case "malloc"
+                    If GetEERegVal(sp(1)) < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Must have a register for the allocated space")
+                    If sp(2) = "" Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "Memory allocation requires a size")
+
+                    AddFooter("", I, "memalign quad", "")
+                    AddFooter("", I, "addradd " + sp(2), "_malloc_%" + MemAddr.ToString + "%" + I.ToString + "%" + sp(1) + "%")
+
+                    tStr = "setreg " + sp(1) + ", :" + "_malloc_%" + MemAddr.ToString + "%" + I.ToString + "%" + sp(1) + "%  " + I.ToString
+                    LabeledToCodeArray(CodeOutput, MemAddr, tStr, 8)
+                Case "memalign"
+                    sp(1) = LCase(sp(1))
+                    If sp(1) = "double" Then
+                        If (MemAddr And 7) <> 0 Then MemAddr = ((MemAddr \ 8) * 8) + 8
+                    ElseIf sp(1) = "quad" Then
+                        If (MemAddr And 15) <> 0 Then MemAddr = ((MemAddr \ 16) * 16) + 16
+                    End If
                 Case "thread"
                 Case "prochook"
                 Case "hook"
@@ -681,6 +698,9 @@ compileFooter:
                 Case "address"
                     MemAddr = Val(Replace(sp(1), "$", "&H0"))
                     GoTo skipBlank
+                Case "addradd"
+                    MemAddr += ((Val(Replace(sp(1), "$", "&H0")) \ 4) * 4) + 4
+                    GoTo skipBlank
                 Case "define"
                     rt = AddLabel(Replace(sp(1), ":", ""), Val(Replace(sp(2), "$", "&H0")))
                     If rt < 0 Then Return CreateError("", SyntaxError_BadLabelDefinition, I, Lines(I), "")
@@ -761,10 +781,14 @@ compileFooter:
                             End If
                             If Mid(Lines(I), i2, 3) = "\''" Then
                                 tStr += "22"
-                                rt = 1
+                                rt = 2
                             End If
-                            If rt = 0 Then tStr += Strings.Right("00" + Hex(Asc(Mid(Lines(I), i2, 1))), 2)
-                            i2 += 1
+                            If rt = 0 Then
+                                tStr += Strings.Right("00" + Hex(Asc(Mid(Lines(I), i2, 1))), 2)
+                                i2 += 1
+                            Else
+                                i2 += rt + 1
+                            End If
                         Loop Until i2 > Len(Lines(I)) Or Mid(Lines(I), i2, 1) = """"
                         If Mid(Lines(I), i2, 1) = """" Then
                             tStr += "00"
