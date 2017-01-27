@@ -30,14 +30,15 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 	sh a2, $0006(s1) // Main Y
 	
 	
-	lui v0, $0004
+	lui v0, $0002
 	subu sp, sp, v0
 	s6 = sp
 	
 	addiu sp, sp, $ff80
 	
 	gp = 0
-	
+	call gif_AddPixel(s6, gp, 640, 80, 0, 0, zero, 50, 50, 50)
+	gp = v0
 	while (1)
 	{
 		s7 = sp
@@ -62,7 +63,7 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 		{
 			call tinyFont_Deflate(a0, s7)
 			
-			for (k0 = 0; k0 < 10; k0++)
+			for (k0 = 0; k0 < 10; k0 += 1)
 			{
 				for (k1 = 0; k1 < 8; k1 += 2)
 				{
@@ -80,7 +81,7 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 						addu t0, t0, k1 // Offset our X
 						addu t1, t1, k0 // Offset our Y
 						t0 += 1
-						call gif_AddPixel(s6, gp, 1, 1, t0, t1, zero, s3, s4, s5)
+						call gif_AddPixel(s6, gp, 2, 2, t0, t1, zero, s3, s4, s5)
 						gp = v0
 						
 					}
@@ -93,7 +94,7 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 						
 						addu t0, t0, k1 // Offset our X
 						addu t1, t1, k0 // Offset our Y
-						call gif_AddPixel(s6, gp, 1, 1, t0, t1, zero, s3, s4, s5)
+						call gif_AddPixel(s6, gp, 2, 2, t0, t1, zero, s3, s4, s5)
 						gp = v0
 						
 					}
@@ -102,10 +103,17 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 			}
 			lh t0, $0000(s1)
 			t0 += 10
+			if (t0 >= 620)
+			{
+				t0 = 0
+				lh t1, $0002(s1)
+				t1 += 10
+				sh t1, $0002(s1)
+			}
 			sh t0, $0000(s1)
 		}
 		
-		if (gp > $30000)
+		if (gp > $10000)
 		{
 			call gs_dmaUpload(s6, gp)
 			gp = 0
@@ -120,7 +128,7 @@ fnc gif_DrawStringTF(EE a0, EE a1, EE a2, EE a3, EE t0, EE t1) \s0,s1,s2,s3,s4,s
 	}
 	
 	addiu sp, sp, $0090
-	lui v0, $0004
+	lui v0, $0002
 	addu sp, sp, v0
 }
 

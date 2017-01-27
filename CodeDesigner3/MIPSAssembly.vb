@@ -157,6 +157,7 @@
         Dim strLine As String, Sp() As String, argCount As Integer, Index As Integer, rt As SByte
         Dim parsed() As String, I As Integer, isCountRight As Boolean, DefaultVal() As String
 
+        If strInstruct Is Nothing Then Return -1
         If strInstruct.Length < 1 Then Return -1 'Empty string
         strLine = parseSyntax(strInstruct)
         If strLine.Length < 1 Then Return -2 'String contains no significant data

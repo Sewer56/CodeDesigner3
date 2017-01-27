@@ -99,6 +99,12 @@
     <Compile Include="frmFindReplaceGoto.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmHexTools.Designer.vb">
+      <DependentUpon>frmHexTools.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmHexTools.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmInject.Designer.vb">
       <DependentUpon>frmInject.vb</DependentUpon>
     </Compile>
@@ -118,10 +124,22 @@
     <Compile Include="frmNewItem.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="frmPS2Controller.Designer.vb">
+      <DependentUpon>frmPS2Controller.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmPS2Controller.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="frmSettings.Designer.vb">
       <DependentUpon>frmSettings.vb</DependentUpon>
     </Compile>
     <Compile Include="frmSettings.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmValueConverter.Designer.vb">
+      <DependentUpon>frmValueConverter.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmValueConverter.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="GlobalConfiguration.vb" />
@@ -170,6 +188,9 @@
     <EmbeddedResource Include="frmFindReplaceGoto.resx">
       <DependentUpon>frmFindReplaceGoto.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmHexTools.resx">
+      <DependentUpon>frmHexTools.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmInject.resx">
       <DependentUpon>frmInject.vb</DependentUpon>
     </EmbeddedResource>
@@ -179,8 +200,14 @@
     <EmbeddedResource Include="frmNewItem.resx">
       <DependentUpon>frmNewItem.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="frmPS2Controller.resx">
+      <DependentUpon>frmPS2Controller.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="frmSettings.resx">
       <DependentUpon>frmSettings.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmValueConverter.resx">
+      <DependentUpon>frmValueConverter.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
@@ -206,6 +233,45 @@
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Triangle.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Circle.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Cross.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Square.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - DPad Down.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - DPad Left.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - DPad Right.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - DPad Up.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Select.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Start.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Joystick.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Big Trigger.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\PS2 Controller - Small Trigger.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

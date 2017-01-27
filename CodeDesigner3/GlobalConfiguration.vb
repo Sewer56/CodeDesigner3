@@ -140,6 +140,7 @@ readFailed:
         SetConfig("SVInvalid", "FFff0000",, "{u}")
 
         SetConfig("SVCOM:hexcode", "FFff00ff",, "{b}")
+        SetConfig("SVCOM:hexfloat", "FFff00ff",, "{b}")
         SetConfig("SVCOM:code", "FFff00ff",, "{b}")
         SetConfig("SVCOM:setreg", "FFff00ff",, "{b}")
         SetConfig("SVCOM:setfpr", "FFff00ff",, "{b}")

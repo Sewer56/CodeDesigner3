@@ -22,5 +22,75 @@ CodeDesigner3
   resource lookups using this strongly typed resource class.
 </summary>
 </member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Big_Trigger">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Circle">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Cross">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___DPad_Down">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___DPad_Left">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___DPad_Right">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___DPad_Up">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Joystick">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Joystick1">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Select">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Small_Trigger">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Square">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Start">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
+<member name="P:CodeDesigner3.My.Resources.Resources.PS2_Controller___Triangle">
+<summary>
+  Looks up a localized resource of type System.Drawing.Bitmap.
+</summary>
+</member>
 </members>
 </doc>

@@ -1,7 +1,7 @@
 address $00090000
 
 
-prochook $002e4e74 -j
+//prochook $002e4e74 -j
 
 event padInput_SQ $007157dc $7fff
 event padInput_O $007157dc $DFFF
@@ -15,8 +15,29 @@ nop
 
 fnc test(void)
 {
-	call _tinyFont_ByteToBIN(100)
+	string testStr1 "One"
+	string testStr2 "Two"
+	string testStr3 "Three"
+	string displayFormat "Test [%s]: %s (%s)\n%08X\n%i\n%i"
+	
+	setreg a0, :displayFormat
+	setreg a1, $000c0100
+	setreg a2, $000c0000
+	
+	setreg t0, :testStr1
+	setreg t1, :testStr2
+	setreg t2, :testStr3
+	sw t0, $0000(a2)
+	sw t1, $0004(a2)
+	sw t2, $0008(a2)
+	sw t0, $000c(a2)
+	sw t1, $0010(a2)
+	sw t2, $0014(a2)
+	
+	call strFormat(a0, a1, a2)
+	
 }
+
 
 
 fnc padInput_SQ(void) \s0

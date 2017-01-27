@@ -3,7 +3,7 @@ Imports System.ComponentModel
 
 Public Class frmMain
     Private mpAsm As MIPSAssembly, mpCom As Compiler, btSav1 As Integer, btSav2 As Integer
-    Private frmGoto As frmFindReplaceGoto
+    Private frmGoto As frmFindReplaceGoto, ps2Joker As frmPS2Controller
 
     Private IsProject As Boolean, MyProject As CDSProject, MyFile As String, LastFile As String
     Private frmNewItem_Mode As String, MyCurrentFile As String, wasSaved As Boolean
@@ -315,6 +315,7 @@ Public Class frmMain
     End Sub
 
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
+        If txtCodeOutput.Text = "" Then Exit Sub
         Clipboard.SetText(txtCodeOutput.Text)
     End Sub
 
@@ -1115,6 +1116,26 @@ Public Class frmMain
         fs.Init(SyntaxView1, mpAsm)
         fs.ShowDialog()
         GC.Collect()
+    End Sub
+
+    Private Sub HexTextConverterToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles HexTextConverterToolStripMenuItem.Click
+        Dim HexTools As New frmHexTools
+        HexTools.Show()
+    End Sub
+
+    Private Sub ValueConverterToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ValueConverterToolStripMenuItem.Click
+        Dim vc As New frmValueConverter
+        vc.Show()
+    End Sub
+
+    Private Sub PS2ToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles PS2ToolStripMenuItem.Click
+        If ps2Joker Is Nothing Then ps2Joker = New frmPS2Controller
+        If ps2Joker.IsDisposed Then
+            GC.Collect()
+            ps2Joker = New frmPS2Controller
+        End If
+        ps2Joker.Show()
+
     End Sub
 
     Private Sub ProjectStyleToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ProjectStyleToolStripMenuItem.Click

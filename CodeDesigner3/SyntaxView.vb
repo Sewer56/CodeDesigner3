@@ -48,8 +48,8 @@
             IsSelecting = False
             AllLines = Split(txt + vbCrLf, vbCrLf)
             ReDim Preserve AllLines(AllLines.Count - 2)
-            CurLine = AllLines.Count - 1
-            CurPos = Len(AllLines(CurLine))
+            CurLine = 0
+            CurPos = 0
             ReturnToCaret()
             ResizeScrollbars()
             Me.Invalidate()

@@ -1,6 +1,6 @@
 ﻿Public Class Compiler
 
-    Private mpAsm As MIPSAssembly
+    Private mpAsm As MIPSAssembly, Flt32 As RegisterFloat
     Private ErrDetail As ErrorDetails
     Private Lbls() As Labels, LBCount As Integer
     Private FuncsAndSubs() As AsmFunction, FnScount As Integer
@@ -571,8 +571,8 @@ compileFooter:
                 Case "code"
                     If Len(sp(1)) <> 8 Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
                     If Len(sp(2)) <> 8 Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
-                    If LCase(Hex(Val("&H" + sp(1)))) <> LCase(sp(1)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
-                    If LCase(Hex(Val("&H" + sp(2)))) <> LCase(sp(2)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    If LCase(Strings.Right("00000000" + Hex(Val("&H" + sp(1))), 8)) <> LCase(sp(1)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
+                    If LCase(Strings.Right("00000000" + Hex(Val("&H" + sp(2))), 8)) <> LCase(sp(2)) Then Return CreateError("", SyntaxError_DataTypeUnknown, I, Lines(I), "Unkown data")
                     AppendToCodeArray(CodeOutput, sp(1), sp(2))
                 Case "include"
                 Case "import"
@@ -711,6 +711,13 @@ compileFooter:
                         LabeledToCodeArray(CodeOutput, MemAddr, sp(0) + " " + sp(1) + "   " + I.ToString, 4)
                     Else
                         FormatToCodeArray(CodeOutput, MemAddr, CDec(Replace(sp(1), "$", "&H0")))
+                    End If
+                Case "hexfloat"
+                    If Strings.Left(sp(1), 1) = ":" Then
+                        LabeledToCodeArray(CodeOutput, MemAddr, sp(0) + " " + sp(1) + "   " + I.ToString, 4)
+                    Else
+                        Flt32.f32 = CDec(Replace(sp(1), "$", "&H0"))
+                        FormatToCodeArray(CodeOutput, MemAddr, Flt32.u32)
                     End If
                 Case "string"
                     If sp(1) <> "" Then
@@ -972,7 +979,9 @@ fScanFunc:
 
                     Dim fncTypes() As String, fncRegs() As String, fncRCount As Integer, fIndx As Integer
                     Dim fncPreserves() As String, fncRestores() As String, fncPreRes As Integer
+                    Dim fncHasNoPres As Boolean
 
+                    fncHasNoPres = False
                     ReDim fncTypes(0)
                     ReDim fncRegs(0)
                     fncRCount = -1
@@ -1023,37 +1032,77 @@ fScanFunc:
                                 fncRestores(fncRestores.Count - 1) = "lwc1 " + sp2(i2) + ", $" + Strings.Right("0000" + Hex(fncPreRes), 4) + "(sp)"
                                 fncPreRes += &H10
                             Else
-                                Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Preservation registers must be EE or COP1")
+                                If LCase(sp2(i2)) = "ee-all" Then
+                                    Dim tmpI As Integer, tmpI2 As Integer, tmpI3 As Integer
+                                    ReDim fncPreserves(0)
+                                    ReDim fncRestores(0)
+                                    tmpI2 = 1
+                                    tmpI3 = 0
+                                    For tmpI = 0 To 30
+                                        If GetEERegStr(tmpI2) <> "sp" Then
+                                            ReDim Preserve fncPreserves(tmpI3)
+                                            ReDim Preserve fncRestores(tmpI3)
+                                            fncPreserves(fncPreserves.Count - 1) = "sq " + GetEERegStr(tmpI2) + ", $" + Strings.Right("0000" + Hex(fncPreRes), 4) + "(sp)"
+                                            fncRestores(fncRestores.Count - 1) = "lq " + GetEERegStr(tmpI2) + ", $" + Strings.Right("0000" + Hex(fncPreRes), 4) + "(sp)"
+                                            fncPreRes += &H10
+                                            tmpI3 += 1
+                                        End If
+                                        tmpI2 += 1
+                                    Next
+                                ElseIf lcase(sp2(i2)) = "cop1-all" Then
+                                    Dim tmpI As Integer
+                                    ReDim fncPreserves(31)
+                                    ReDim fncPreserves(31)
+                                    For tmpI = 1 To 31
+                                        fncPreserves(tmpI) = "swc1 " + GetCOP1RegStr(tmpI) + ", $" + Strings.Right("0000" + Hex(fncPreRes), 4) + "(sp)"
+                                        fncPreserves(tmpI) = "lwc1 " + GetCOP1RegStr(tmpI) + ", $" + Strings.Right("0000" + Hex(fncPreRes), 4) + "(sp)"
+                                        fncPreRes += &H10
+                                    Next
+                                ElseIf LCase(sp2(i2)) = "-none" Then
+                                    ReDim fncPreserves(0)
+                                    ReDim fncRestores(0)
+                                    fncHasNoPres = True
+                                Else
+                                    Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Preservation registers must be EE or COP1")
+                                End If
                             End If
                         End If
 
                         i2 += 1
                     Loop
+                    If fncHasNoPres = False Then
+                        With FuncsAndSubs(fIndx)
+                            .FncType = 0
 
-                    With FuncsAndSubs(fIndx)
-                        .FncType = 0
+                            ReDim .Preserves(fncPreserves.Count)
+                            ReDim .Restores(fncRestores.Count + 1)
 
-                        ReDim .Preserves(fncPreserves.Count)
-                        ReDim .Restores(fncRestores.Count + 1)
+                            .Preserves(0) = "addiu sp, sp, $" + Strings.Right("0000" + Hex(&H10000 - fncPreRes), 4)
 
-                        .Preserves(0) = "addiu sp, sp, $" + Strings.Right("0000" + Hex(&H10000 - fncPreRes), 4)
-
-                        rt = mpAsm.AssembleInstruction(.Preserves(0), CodeRet)
-                        If rt < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Unknown reason for being here")
-                        FormatToCodeArray(CodeOutput, MemAddr, CodeRet)
-                        For i2 = 0 To fncPreserves.Count - 1
-
-                            .Preserves(i2 + 1) = fncPreserves(i2)
-                            .Restores(i2) = fncRestores(i2)
-
-                            rt = mpAsm.AssembleInstruction(fncPreserves(i2), CodeRet)
+                            rt = mpAsm.AssembleInstruction(.Preserves(0), CodeRet)
                             If rt < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Unknown reason for being here")
                             FormatToCodeArray(CodeOutput, MemAddr, CodeRet)
-                        Next
+                            For i2 = 0 To fncPreserves.Count - 1
 
-                        .Restores(.Restores.Count - 2) = "jr ra"
-                        .Restores(.Restores.Count - 1) = "addiu sp, sp, $" + Strings.Right("0000" + Hex(fncPreRes), 4)
-                    End With
+                                .Preserves(i2 + 1) = fncPreserves(i2)
+                                .Restores(i2) = fncRestores(i2)
+
+                                Console.WriteLine(fncPreserves(i2))
+                                rt = mpAsm.AssembleInstruction(fncPreserves(i2), CodeRet)
+                                If rt < 0 Then Return CreateError("", SyntaxError_BadArgumentType, I, Lines(I), "Unknown reason for being here")
+                                FormatToCodeArray(CodeOutput, MemAddr, CodeRet)
+                            Next
+
+                            .Restores(.Restores.Count - 2) = "jr ra"
+                            .Restores(.Restores.Count - 1) = "addiu sp, sp, $" + Strings.Right("0000" + Hex(fncPreRes), 4)
+                        End With
+                    Else
+                        With FuncsAndSubs(fIndx)
+                            ReDim .Restores(1)
+                            .Restores(0) = "jr ra"
+                            .Restores(1) = "nop"
+                        End With
+                    End If
 
 
                     'Check for closing brace syntax

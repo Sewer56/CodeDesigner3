@@ -190,7 +190,7 @@ fnc strCopy(EE a0, EE a1, EE a2) \s0,s1
 		s1++
 		
 		// Load the character next character to copy
-		lbu v1, $0000(s1)
+		lbu v1, $0000(s0)
 	}
 	
 	// End our destination string by placing a NULL character
@@ -300,7 +300,8 @@ Input:
 	a0 = Value
 	a1 = Destination String
 	a2 = Hex Digits Limit
-
+Output:
+	v0 = Digits Count
 */
 fnc Hex(EE a0, EE a1, EE a2) \s0,s1,s2
 {
@@ -317,16 +318,153 @@ fnc Hex(EE a0, EE a1, EE a2) \s0,s1,s2
 		if (v0 < 10)
 			v0 += $30
 		else
-			v0 += $41
+			v0 += $37
 		
 		sb v0, $0000(s1)
 		s0 >> 4
 		s1--
 		s2--
 	}
+	
+	v0 = a2
 }
 
+//============================================================
+// Value to String - Converts a value into the string equivalent
+/*
+Input:
+	a0 = Value
+	a1 = Destination String
+Output:
+	v0 = Length of output string
+*/
+fnc ValToStr(EE a0, EE a1) \s0,s1,s2,s3
+{
+	s0 = a0
+	s1 = a1
+	s2 = 0
+	daddu v0, zero, zero
+	
+	s3 = 0
+	if (s0 < 0)
+	{
+		dsubu s0, zero, s0
+		s3 = $2d // - (Negative number)
+	}
+	
+	while (s0)
+	{
+		v1 = 10
+		divu s0, v1
+		mfhi v1
+		mflo s0
+		
+		dsllv v1, v1, s2
+		daddu v0, v0, v1
+		
+		s2 += 4
+	}
+	
+	t0 = 0
+	if (s3 > 0)
+	{
+		sb s3, $0000(s1)
+		s1++
+		t0++
+	}
+	
+	while (s2)
+	{
+		s2 -= 4
+		dsrlv v1, v0, s2
+		andi v1, v1, 15
+		
+		v1 += $30
+		sb v1, $0000(s1)
+		s1++
+		t0++
+	}
+	sb zero, $0000(s1)
+	v0 = t0
+}
 
+//============================================================
+// Format String
+/*
+Input:
+	a0 = Source String
+	a1 = Destination String
+	a2 = &Arguments
+*/
+fnc strFormat(EE a0, EE a1, EE a2) \s0,s1,s2
+{
+	s0 = a0
+	s1 = a1
+	s2 = a2
+	lbu a0, $0000(s0)
+	while (a0)
+	{
+		switch (a0)
+		{
+			case $5c // '\'
+			{
+				s0++
+				
+			}
+			case $25 // '%'
+			{
+				s0++
+				lbu a0, $0000(s0)
+				if (a0 == $69) // %i
+				{
+					lw a0, $0000(s2)
+					call ValToStr(a0, s1)
+					s2 += 4
+					s1 += v0
+				}
+				else if (a0 == $73) // %s
+				{
+					lw a0, $0000(s2)
+					call strCopy(a0, s1, 0)
+					s2 += 4
+					s1 += v1
+				}
+				else
+				{
+					lbu a0, $0002(s0)
+					if (a0 == $58) // %08X
+					{
+						lbu a0, $0000(s0)
+						lbu a1, $0001(s0)
+						a0 -= $30
+						a1 -= $30
+						
+						v0 = 10
+						multu a0, a0, v0
+						a1 += a0
+						lw a0, $0000(s2)
+						a2 = a1
+						
+						call Hex(a0, s1, a2)
+						
+						s1 += v0
+						s2 += 4
+						s0 += 2
+					}
+				}
+			}
+			default
+			{
+				sb a0, $0000(s1)
+				s1++
+			}
+		}
+		
+		s0++
+		lbu a0, $0000(s0)
+	}
+	sb zero, $0000(s1)
+}
 
 
 
