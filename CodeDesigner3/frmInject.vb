@@ -33,7 +33,7 @@
                 Exit Sub
             End If
             rt = CodeToBytes(InjectData, fBytes)
-            wrAddr = Val("&H" + txtOffset.Text)
+            wrAddr = Int32.Parse(txtOffset.Text, System.Globalization.NumberStyles.HexNumber)
 
             FS = System.IO.File.OpenWrite(txtFile.Text)
             FS.Seek(wrAddr, IO.SeekOrigin.Begin)
